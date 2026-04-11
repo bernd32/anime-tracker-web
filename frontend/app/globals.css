@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+:root {
+  --background: 255 255 255;
+  --foreground: 17 24 39;
+  --muted: 243 244 246;
+  --muted-foreground: 107 114 128;
+  --border: 229 231 235;
+  --card: 255 255 255;
+  --primary: 17 24 39;
+  --primary-foreground: 255 255 255;
+  --accent: 249 250 251;
+  --accent-foreground: 17 24 39;
+  --ring: 59 130 246;
+  --success: 22 163 74;
+  --warning: 202 138 4;
+}
+
+.dark {
+  --background: 3 7 18;
+  --foreground: 243 244 246;
+  --muted: 17 24 39;
+  --muted-foreground: 156 163 175;
+  --border: 31 41 55;
+  --card: 10 15 28;
+  --primary: 243 244 246;
+  --primary-foreground: 17 24 39;
+  --accent: 17 24 39;
+  --accent-foreground: 243 244 246;
+  --ring: 96 165 250;
+  --success: 74 222 128;
+  --warning: 250 204 21;
+}
+
+* {
+  border-color: rgb(var(--border));
+}
+
+html, body {
+  min-height: 100%;
+}
+
+body {
+  background: rgb(var(--background));
+  color: rgb(var(--foreground));
+  font-family: "Segoe UI", "Noto Sans", "DejaVu Sans", "Liberation Sans", sans-serif;
+}
+
+@theme inline {
+  --color-background: rgb(var(--background));
+  --color-foreground: rgb(var(--foreground));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-border: rgb(var(--border));
+  --color-card: rgb(var(--card));
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+  --color-accent: rgb(var(--accent));
+  --color-accent-foreground: rgb(var(--accent-foreground));
+  --color-ring: rgb(var(--ring));
+  --color-success: rgb(var(--success));
+  --color-warning: rgb(var(--warning));
+}
