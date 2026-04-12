@@ -5,14 +5,13 @@ import { useQuery } from '@tanstack/react-query';
 
 import { AnimeRowActions } from '@/features/anime/anime-row-actions';
 import { RandomPickButton } from '@/features/anime/random-pick-button';
-import { StatusBadge } from '@/features/anime/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api/client';
 import type { AnimeItem, AnimeSeason, ScopeKind } from '@/lib/api/types';
 import { queryKeys } from '@/lib/query/keys';
-import { decodeHtmlEntities, percent, titleCaseSeason } from '@/lib/utils';
+import { cn, decodeHtmlEntities, percent, titleCaseSeason } from '@/lib/utils';
 
 const seasons: AnimeSeason[] = ['winter', 'spring', 'summer', 'fall', 'other'];
 
@@ -87,24 +86,24 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
   return (
     <>
       <div className="hidden overflow-x-auto lg:block">
-        <table className="w-full text-left text-sm">
+        <table className="w-full border-separate [border-spacing:0_0.75rem] text-left text-sm">
           <thead>
-            <tr className="border-b text-muted-foreground">
-              <th className="py-3 pr-4">Name</th>
-              <th className="py-3 pr-4">Type</th>
-              <th className="py-3 pr-4">Status</th>
-              <th className="py-3 pr-4">Downloaded</th>
-              <th className="py-3 text-right">Actions</th>
+            <tr className="text-muted-foreground">
+              <th className="px-4 py-2">Name</th>
+              <th className="px-4 py-2">Type</th>
+              <th className="px-4 py-2">Downloaded</th>
+              <th className="px-4 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {items.map((anime) => (
-              <tr key={anime.id} className="border-b align-top last:border-b-0">
-                <td className="py-3 pr-4 font-medium">{anime.url ? <a href={anime.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">{decodeHtmlEntities(anime.name)}</a> : decodeHtmlEntities(anime.name)}</td>
-                <td className="py-3 pr-4">{anime.type || '—'}</td>
-                <td className="py-3 pr-4"><StatusBadge status={anime.status} /></td>
-                <td className="py-3 pr-4">{anime.downloaded ? 'Yes' : 'No'}</td>
-                <td className="py-3 text-right"><AnimeRowActions anime={anime} /></td>
+              <tr key={anime.id} className="align-top">
+                <td className={cn(animeCellClassName(anime), 'rounded-l-2xl border-r-0 px-5 py-4 font-medium')}>
+                  {anime.url ? <a href={anime.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">{decodeHtmlEntities(anime.name)}</a> : decodeHtmlEntities(anime.name)}
+                </td>
+                <td className={cn(animeCellClassName(anime), 'border-l-0 border-r-0 px-4 py-4')}>{anime.type || '—'}</td>
+                <td className={cn(animeCellClassName(anime), 'border-l-0 border-r-0 px-4 py-4')}>{anime.downloaded ? 'Yes' : 'No'}</td>
+                <td className={cn(animeCellClassName(anime), 'rounded-r-2xl border-l-0 px-5 py-4 text-right')}><AnimeRowActions anime={anime} /></td>
               </tr>
             ))}
           </tbody>
@@ -112,11 +111,11 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
       </div>
       <div className="space-y-3 lg:hidden">
         {items.map((anime) => (
-          <div key={anime.id} className="rounded-lg border p-4">
+          <div key={anime.id} className={cn('rounded-2xl border p-5 shadow-sm', animeCardClassName(anime))}>
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-2">
                 <p className="font-medium">{anime.url ? <a href={anime.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">{decodeHtmlEntities(anime.name)}</a> : decodeHtmlEntities(anime.name)}</p>
-                <div className="flex flex-wrap gap-2"><StatusBadge status={anime.status} /><span className="text-sm text-muted-foreground">{anime.type || 'No type'}</span></div>
+                <div className="flex flex-wrap gap-2"><span className="text-sm text-muted-foreground">{anime.type || 'No type'}</span></div>
                 <p className="text-sm text-muted-foreground">Downloaded: {anime.downloaded ? 'Yes' : 'No'}</p>
               </div>
               <AnimeRowActions anime={anime} />
@@ -126,4 +125,25 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
       </div>
     </>
   );
+}
+
+function animeToneClassName(anime: AnimeItem): string {
+  if (!anime.downloaded) {
+    return 'border-slate-200 bg-slate-100/90';
+  }
+  if (anime.status === 'completed') {
+    return 'border-green-200 bg-green-100/85';
+  }
+  if (anime.status === 'watching') {
+    return 'border-yellow-200 bg-yellow-100/90';
+  }
+  return 'border-border bg-background';
+}
+
+function animeCellClassName(anime: AnimeItem): string {
+  return cn('border-y text-foreground', animeToneClassName(anime));
+}
+
+function animeCardClassName(anime: AnimeItem): string {
+  return animeToneClassName(anime);
 }
