@@ -91,7 +91,6 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
             <tr className="text-muted-foreground">
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Type</th>
-              <th className="px-4 py-2">Downloaded</th>
               <th className="px-4 py-2 text-right">Actions</th>
             </tr>
           </thead>
@@ -102,7 +101,6 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
                   {anime.url ? <a href={anime.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">{decodeHtmlEntities(anime.name)}</a> : decodeHtmlEntities(anime.name)}
                 </td>
                 <td className={cn(animeCellClassName(anime), 'border-l-0 border-r-0 px-4 py-4')}>{anime.type || '—'}</td>
-                <td className={cn(animeCellClassName(anime), 'border-l-0 border-r-0 px-4 py-4')}>{anime.downloaded ? 'Yes' : 'No'}</td>
                 <td className={cn(animeCellClassName(anime), 'rounded-r-2xl border-l-0 px-5 py-4 text-right')}><AnimeRowActions anime={anime} /></td>
               </tr>
             ))}
@@ -116,7 +114,6 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
               <div className="space-y-2">
                 <p className="font-medium">{anime.url ? <a href={anime.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">{decodeHtmlEntities(anime.name)}</a> : decodeHtmlEntities(anime.name)}</p>
                 <div className="flex flex-wrap gap-2"><span className="text-sm text-muted-foreground">{anime.type || 'No type'}</span></div>
-                <p className="text-sm text-muted-foreground">Downloaded: {anime.downloaded ? 'Yes' : 'No'}</p>
               </div>
               <AnimeRowActions anime={anime} />
             </div>
@@ -128,14 +125,14 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
 }
 
 function animeToneClassName(anime: AnimeItem): string {
-  if (!anime.downloaded) {
-    return 'border-slate-200 bg-slate-100/90';
-  }
   if (anime.status === 'completed') {
     return 'border-green-200 bg-green-100/85';
   }
   if (anime.status === 'watching') {
     return 'border-yellow-200 bg-yellow-100/90';
+  }
+  if (!anime.downloaded) {
+    return 'border-slate-200 bg-slate-100/90';
   }
   return 'border-border bg-background';
 }

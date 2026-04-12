@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreHorizontal } from 'lucide-react';
+import type React from 'react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -8,36 +8,93 @@ import { ShikimoriSheet } from '@/features/anime/shikimori-sheet';
 import { useMutations } from '@/features/anime/hooks';
 import type { AnimeItem } from '@/lib/api/types';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn, decodeHtmlEntities } from '@/lib/utils';
 
 export function AnimeRowActions({ anime }: { anime: AnimeItem }) {
   const { updateStatus, updateDownloaded, deleteAnime } = useMutations();
   const [openInfo, setOpenInfo] = useState(false);
+  const animeName = decodeHtmlEntities(anime.name);
+  const watchingLabel = anime.status === 'watching' ? 'Unset watching' : 'Set watching';
+  const watchingStatus = anime.status === 'watching' ? 'unwatched' : 'watching';
+  const completedLabel = anime.status === 'completed' ? 'Set unwatched' : 'Set completed';
+  const completedStatus = anime.status === 'completed' ? 'unwatched' : 'completed';
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label={`Actions for ${anime.name}`}>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem asChild>
-            <Link href={`/anime/${anime.id}/edit`}>Edit</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setOpenInfo(true)}>Shikimori info</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => updateDownloaded.mutate({ id: anime.id, downloaded: !anime.downloaded })}>
-            {anime.downloaded ? 'Mark not downloaded' : 'Mark downloaded'}
-          </DropdownMenuItem>
-          {anime.status !== 'watching' ? <DropdownMenuItem onSelect={() => updateStatus.mutate({ id: anime.id, status: 'watching' })}>Set watching</DropdownMenuItem> : null}
-          {anime.status !== 'completed' ? <DropdownMenuItem onSelect={() => updateStatus.mutate({ id: anime.id, status: 'completed' })}>Set completed</DropdownMenuItem> : null}
-          {anime.status !== 'unwatched' ? <DropdownMenuItem onSelect={() => updateStatus.mutate({ id: anime.id, status: 'unwatched' })}>Set unwatched</DropdownMenuItem> : null}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-red-600" onSelect={() => deleteAnime.mutate(anime.id)}>Delete</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <ActionButton
+          asChild
+          emoji="✏️"
+          label={`Edit ${animeName}`}
+        >
+          <Link href={`/anime/${anime.id}/edit`}>
+            <span aria-hidden="true">✏️</span>
+          </Link>
+        </ActionButton>
+        <ActionButton
+          emoji="ℹ️"
+          label={`Open Shikimori info for ${animeName}`}
+          onClick={() => setOpenInfo(true)}
+        />
+        <ActionButton
+          emoji="⬇️"
+          label={anime.downloaded ? `Mark ${animeName} as not downloaded` : `Mark ${animeName} as downloaded`}
+          onClick={() => updateDownloaded.mutate({ id: anime.id, downloaded: !anime.downloaded })}
+          disabled={updateDownloaded.isPending}
+        />
+        <ActionButton
+          emoji="👀"
+          label={`${watchingLabel} for ${animeName}`}
+          onClick={() => updateStatus.mutate({ id: anime.id, status: watchingStatus })}
+          disabled={updateStatus.isPending}
+        />
+        <ActionButton
+          emoji="✅"
+          label={`${completedLabel} for ${animeName}`}
+          onClick={() => updateStatus.mutate({ id: anime.id, status: completedStatus })}
+          disabled={updateStatus.isPending}
+        />
+        <ActionButton
+          emoji="🗑️"
+          label={`Delete ${animeName}`}
+          onClick={() => deleteAnime.mutate(anime.id)}
+          disabled={deleteAnime.isPending}
+          destructive
+        />
+      </div>
       <ShikimoriSheet anime={anime} open={openInfo} onOpenChange={setOpenInfo} />
     </>
+  );
+}
+
+function ActionButton({
+  asChild = false,
+  children,
+  destructive = false,
+  emoji,
+  label,
+  ...props
+}: React.ComponentProps<typeof Button> & {
+  children?: React.ReactNode;
+  emoji: string;
+  label: string;
+  destructive?: boolean;
+}) {
+  return (
+    <Button
+      asChild={asChild}
+      type={asChild ? undefined : 'button'}
+      variant="ghost"
+      size="icon"
+      className={cn(
+        'h-10 w-10 rounded-xl border border-border/70 bg-background/80 text-lg shadow-sm backdrop-blur-sm hover:bg-background',
+        destructive && 'border-red-200 bg-red-50 hover:bg-red-100',
+      )}
+      title={label}
+      aria-label={label}
+      {...props}
+    >
+      {children ?? <span aria-hidden="true">{emoji}</span>}
+    </Button>
   );
 }
