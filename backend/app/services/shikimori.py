@@ -43,16 +43,26 @@ class LruCache:
         if item is None:
             return None
         self._items.move_to_end(key)
-        if item.expires_at <= datetime.now(UTC) and not include_expired:
+        expires_at = ensure_utc(item.expires_at)
+        if expires_at <= datetime.now(UTC) and not include_expired:
             del self._items[key]
             return None
+        if expires_at is not item.expires_at:
+            item = MemoryCacheItem(payload=item.payload, expires_at=expires_at)
+            self._items[key] = item
         return item
 
     def put(self, key: str, value: MemoryCacheItem) -> None:
-        self._items[key] = value
+        self._items[key] = MemoryCacheItem(payload=value.payload, expires_at=ensure_utc(value.expires_at))
         self._items.move_to_end(key)
         while len(self._items) > self.capacity:
             self._items.popitem(last=False)
+
+
+def ensure_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 class ShikimoriService:
@@ -89,8 +99,9 @@ class ShikimoriService:
                     return self._build_response(anime.id, search_key, in_memory.payload, "memory", in_memory.expires_at)
                 db_cache = cache_repo.get_valid(search_key)
                 if db_cache is not None:
-                    self.cache.put(search_key, MemoryCacheItem(payload=db_cache.payload, expires_at=db_cache.expires_at))
-                    return self._build_response(anime.id, search_key, db_cache.payload, "database", db_cache.expires_at)
+                    expires_at = ensure_utc(db_cache.expires_at)
+                    self.cache.put(search_key, MemoryCacheItem(payload=db_cache.payload, expires_at=expires_at))
+                    return self._build_response(anime.id, search_key, db_cache.payload, "database", expires_at)
             try:
                 payload, expires_at = self._fetch_from_network(anime)
             except ExternalServiceError:
@@ -106,21 +117,23 @@ class ShikimoriService:
                     )
                 stale_db = cache_repo.get_latest(search_key)
                 if stale_db is not None:
-                    self.cache.put(search_key, MemoryCacheItem(payload=stale_db.payload, expires_at=stale_db.expires_at))
+                    expires_at = ensure_utc(stale_db.expires_at)
+                    self.cache.put(search_key, MemoryCacheItem(payload=stale_db.payload, expires_at=expires_at))
                     return self._build_response(
                         anime.id,
                         search_key,
                         stale_db.payload,
                         "database",
-                        stale_db.expires_at,
+                        expires_at,
                         stale=True,
                     )
                 raise
 
             cache_entry = cache_repo.upsert(search_key=search_key, payload=payload, expires_at=expires_at)
             session.commit()
-            self.cache.put(search_key, MemoryCacheItem(payload=cache_entry.payload, expires_at=cache_entry.expires_at))
-            return self._build_response(anime.id, search_key, cache_entry.payload, "network", cache_entry.expires_at)
+            cache_expires_at = ensure_utc(cache_entry.expires_at)
+            self.cache.put(search_key, MemoryCacheItem(payload=cache_entry.payload, expires_at=cache_expires_at))
+            return self._build_response(anime.id, search_key, cache_entry.payload, "network", cache_expires_at)
 
     def _fetch_from_network(self, anime: Anime) -> tuple[dict[str, Any], datetime]:
         escaped = anime.name.replace('"', '\\"')
@@ -173,6 +186,6 @@ class ShikimoriService:
         return ShikimoriInfoResponse(
             anime_id=anime_id,
             search_key=search_key,
-            cache=ShikimoriCacheMeta(source=source, expires_at=expires_at, stale=stale),
+            cache=ShikimoriCacheMeta(source=source, expires_at=ensure_utc(expires_at), stale=stale),
             result=ShikimoriInfo.model_validate(payload),
         )

@@ -186,8 +186,10 @@ npm test
 
 ```sh
 cd backend
-python -m pip install -e ".[dev]"
-pytest -q
+python3 -m venv venv
+source venv/bin/activate
+python3 -m pip install -e ".[dev]"
+python3 -m pytest -q
 ```
 
 ### Project shortcuts

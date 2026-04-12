@@ -6,6 +6,7 @@ from app.services.shikimori import ShikimoriService
 
 def test_settings_accept_https_proxy():
     settings = Settings(
+        _env_file=None,
         DATABASE_URL="sqlite+pysqlite:///./test.db",
         SHIKIMORI_HTTPS_PROXY_URL="https://proxy.example:8443",
     )
@@ -14,6 +15,7 @@ def test_settings_accept_https_proxy():
 
 def test_settings_accept_socks5_proxy():
     settings = Settings(
+        _env_file=None,
         DATABASE_URL="sqlite+pysqlite:///./test.db",
         SHIKIMORI_SOCKS5_PROXY_URL="socks5://proxy.example:1080",
     )
@@ -23,6 +25,7 @@ def test_settings_accept_socks5_proxy():
 def test_settings_reject_multiple_proxy_types():
     with pytest.raises(ValueError):
         Settings(
+            _env_file=None,
             DATABASE_URL="sqlite+pysqlite:///./test.db",
             SHIKIMORI_HTTPS_PROXY_URL="https://proxy.example:8443",
             SHIKIMORI_SOCKS5_PROXY_URL="socks5://proxy.example:1080",
@@ -39,6 +42,7 @@ def test_build_client_uses_proxy(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("app.services.shikimori.httpx.Client", DummyClient)
 
     settings = Settings(
+        _env_file=None,
         DATABASE_URL="sqlite+pysqlite:///./test.db",
         SHIKIMORI_SOCKS5_PROXY_URL="socks5://proxy.example:1080",
     )

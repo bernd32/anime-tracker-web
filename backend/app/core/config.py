@@ -31,8 +31,14 @@ class Settings(BaseSettings):
     shikimori_request_timeout_seconds: float = 10.0
     shikimori_cache_ttl_seconds: int = 365 * 24 * 60 * 60
     shikimori_user_agent: str = "anime-backlog-web/1.0"
-    shikimori_https_proxy_url: str | None = None
-    shikimori_socks5_proxy_url: str | None = None
+    shikimori_https_proxy_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SHIKIMORI_HTTPS_PROXY_URL", "shikimori_https_proxy_url"),
+    )
+    shikimori_socks5_proxy_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SHIKIMORI_SOCKS5_PROXY_URL", "shikimori_socks5_proxy_url"),
+    )
 
     cors_allow_origins: list[str] = ["http://localhost:20773", "http://127.0.0.1:20773"]
 
