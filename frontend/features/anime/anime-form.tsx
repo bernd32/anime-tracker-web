@@ -16,6 +16,7 @@ import { animeFormSchema, type AnimeFormValues } from '@/lib/validation/anime';
 
 const seasons: AnimeSeason[] = ['winter', 'spring', 'summer', 'fall', 'other'];
 const statuses: AnimeStatus[] = ['unwatched', 'watching', 'completed'];
+const animeTypes = ['TV', 'Movie', 'OVA', 'Special', 'Short', 'Other'] as const;
 
 export function AnimeForm({ initial, mode, onSuccess }: { initial?: Partial<AnimeItem>; mode: 'create' | 'edit'; onSuccess?: () => void }) {
   const router = useRouter();
@@ -76,7 +77,16 @@ export function AnimeForm({ initial, mode, onSuccess }: { initial?: Partial<Anim
         </Field>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Type" error={form.formState.errors.type?.message}><Input {...form.register('type')} /></Field>
+        <Field label="Type" error={form.formState.errors.type?.message}>
+          {mode === 'create' ? (
+            <Select value={form.watch('type') || undefined} onValueChange={(value) => form.setValue('type', value)}>
+              <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+              <SelectContent>{animeTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
+            </Select>
+          ) : (
+            <Input {...form.register('type')} />
+          )}
+        </Field>
         <Field label="External URL" error={form.formState.errors.url?.message}><Input {...form.register('url')} /></Field>
       </div>
       <Field label="Comment" error={form.formState.errors.comment?.message}><Textarea {...form.register('comment')} /></Field>
