@@ -64,8 +64,17 @@ class ShikimoriService:
     ) -> None:
         self.session_factory = session_factory
         self.settings = settings
-        self.client = client or httpx.Client(timeout=settings.shikimori_request_timeout_seconds)
+        self.client = client or self._build_client(settings)
         self.cache = LruCache(capacity=128)
+
+    @staticmethod
+    def _build_client(settings: Settings) -> httpx.Client:
+        kwargs: dict[str, Any] = {
+            "timeout": settings.shikimori_request_timeout_seconds,
+        }
+        if settings.shikimori_proxy_url:
+            kwargs["proxy"] = settings.shikimori_proxy_url
+        return httpx.Client(**kwargs)
 
     def get_info(self, anime_id: int, *, force_refresh: bool = False) -> ShikimoriInfoResponse:
         with self.session_factory() as session:

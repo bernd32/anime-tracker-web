@@ -235,11 +235,53 @@ Important variables:
 - `SHIKIMORI_REQUEST_TIMEOUT_SECONDS`
 - `SHIKIMORI_CACHE_TTL_SECONDS`
 - `SHIKIMORI_USER_AGENT`
+- `SHIKIMORI_HTTPS_PROXY_URL`
+- `SHIKIMORI_SOCKS5_PROXY_URL`
 
 `CORS_ALLOW_ORIGINS` is a JSON array string, for example:
 
 ```dotenv
 CORS_ALLOW_ORIGINS=["http://localhost:20773","http://192.168.88.40:20773"]
+```
+
+### Shikimori proxy configuration
+
+You can route Shikimori requests through exactly one proxy type:
+
+- `SHIKIMORI_HTTPS_PROXY_URL`
+- `SHIKIMORI_SOCKS5_PROXY_URL`
+
+Examples:
+
+```dotenv
+SHIKIMORI_HTTPS_PROXY_URL=https://proxy.example:8443
+```
+
+```dotenv
+SHIKIMORI_SOCKS5_PROXY_URL=socks5://127.0.0.1:1080
+```
+
+Notes:
+
+- set only one of the two variables
+- HTTPS proxy values must start with `http://` or `https://`
+- SOCKS5 proxy values must start with `socks5://` or `socks5h://`
+- when the backend runs in Docker and the proxy runs on the host machine, use `host.docker.internal` instead of `127.0.0.1`
+
+Example for Docker on the same host:
+
+```dotenv
+SHIKIMORI_SOCKS5_PROXY_URL=socks5://host.docker.internal:10808
+```
+
+Quick setup steps:
+
+1. Set the proxy URL in `.env`
+2. If you also run the backend outside Docker, mirror it in `backend/.env`
+3. Rebuild and restart the stack:
+
+```sh
+docker compose up --build -d
 ```
 
 ## Database and Migrations

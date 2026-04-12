@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 
 import { AnimeRowActions } from '@/features/anime/anime-row-actions';
-import { CommentText } from '@/features/anime/comment-text';
 import { RandomPickButton } from '@/features/anime/random-pick-button';
 import { StatusBadge } from '@/features/anime/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -95,7 +94,6 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
               <th className="py-3 pr-4">Type</th>
               <th className="py-3 pr-4">Status</th>
               <th className="py-3 pr-4">Downloaded</th>
-              <th className="py-3 pr-4">Comment</th>
               <th className="py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -106,7 +104,6 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
                 <td className="py-3 pr-4">{anime.type || '—'}</td>
                 <td className="py-3 pr-4"><StatusBadge status={anime.status} /></td>
                 <td className="py-3 pr-4">{anime.downloaded ? 'Yes' : 'No'}</td>
-                <td className="max-w-md py-3 pr-4"><CommentText text={anime.comment} /></td>
                 <td className="py-3 text-right"><AnimeRowActions anime={anime} /></td>
               </tr>
             ))}
@@ -124,7 +121,6 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
               </div>
               <AnimeRowActions anime={anime} />
             </div>
-            <div className="mt-3"><CommentText text={anime.comment} /></div>
           </div>
         ))}
       </div>

@@ -19,11 +19,15 @@ services:
       SHIKIMORI_REQUEST_TIMEOUT_SECONDS: ${SHIKIMORI_REQUEST_TIMEOUT_SECONDS:-10}
       SHIKIMORI_CACHE_TTL_SECONDS: ${SHIKIMORI_CACHE_TTL_SECONDS:-31536000}
       SHIKIMORI_USER_AGENT: ${SHIKIMORI_USER_AGENT:-anime-backlog-web/1.0}
+      SHIKIMORI_HTTPS_PROXY_URL: ${SHIKIMORI_HTTPS_PROXY_URL:-}
+      SHIKIMORI_SOCKS5_PROXY_URL: ${SHIKIMORI_SOCKS5_PROXY_URL:-}
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-["http://localhost:20773","http://127.0.0.1:20773","http://192.168.88.40:20773"]}
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "43968", "--reload"]
     volumes:
       - ./backend:/app
       - backend_venv:/opt/venv
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${API_PORT:-43968}:43968"
 

@@ -36,11 +36,15 @@ services:
       SHIKIMORI_REQUEST_TIMEOUT_SECONDS: ${SHIKIMORI_REQUEST_TIMEOUT_SECONDS:-10}
       SHIKIMORI_CACHE_TTL_SECONDS: ${SHIKIMORI_CACHE_TTL_SECONDS:-31536000}
       SHIKIMORI_USER_AGENT: ${SHIKIMORI_USER_AGENT:-anime-backlog-web/1.0}
+      SHIKIMORI_HTTPS_PROXY_URL: ${SHIKIMORI_HTTPS_PROXY_URL:-}
+      SHIKIMORI_SOCKS5_PROXY_URL: ${SHIKIMORI_SOCKS5_PROXY_URL:-}
       UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-["http://localhost:20773","http://127.0.0.1:20773","http://192.168.88.40:20773"]}
     depends_on:
       db:
         condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     security_opt:
       - no-new-privileges:true
     cap_drop:
