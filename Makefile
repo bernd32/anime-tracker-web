@@ -67,7 +67,10 @@ front-shell:
 	$(COMPOSE) exec frontend sh
 
 test-backend:
-	cd backend && pytest -q
+	cd backend && \
+	python3 -m venv venv && \
+	. venv/bin/activate && \
+	python3 -m pytest -q
 
 test-frontend:
 	cd frontend && npm test
