@@ -21,7 +21,7 @@ export function AnimeRowActions({ anime }: { anime: AnimeItem }) {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex flex-nowrap items-center justify-end gap-2">
         <ActionButton
           asChild
           emoji="✏️"

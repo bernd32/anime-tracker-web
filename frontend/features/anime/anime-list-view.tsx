@@ -86,7 +86,12 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
   return (
     <>
       <div className="hidden overflow-x-auto lg:block">
-        <table className="w-full border-separate [border-spacing:0_0.75rem] text-left text-sm">
+        <table className="w-full table-fixed border-separate [border-spacing:0_0.75rem] text-left text-sm">
+          <colgroup>
+            <col className="w-[52%]" />
+            <col className="w-[16%]" />
+            <col className="w-[32%]" />
+          </colgroup>
           <thead>
             <tr className="text-muted-foreground">
               <th className="px-4 py-2">Name</th>
@@ -98,7 +103,21 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
             {items.map((anime) => (
               <tr key={anime.id} className="align-top">
                 <td className={cn(animeCellClassName(anime), 'rounded-l-2xl border-r-0 px-5 py-4 font-medium')}>
-                  {anime.url ? <a href={anime.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">{decodeHtmlEntities(anime.name)}</a> : decodeHtmlEntities(anime.name)}
+                  {anime.url ? (
+                    <a
+                      href={anime.url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="block truncate underline underline-offset-2"
+                      title={decodeHtmlEntities(anime.name)}
+                    >
+                      {decodeHtmlEntities(anime.name)}
+                    </a>
+                  ) : (
+                    <span className="block truncate" title={decodeHtmlEntities(anime.name)}>
+                      {decodeHtmlEntities(anime.name)}
+                    </span>
+                  )}
                 </td>
                 <td className={cn(animeCellClassName(anime), 'border-l-0 border-r-0 px-4 py-4')}>{anime.type || '—'}</td>
                 <td className={cn(animeCellClassName(anime), 'rounded-r-2xl border-l-0 px-5 py-4 text-right')}><AnimeRowActions anime={anime} /></td>

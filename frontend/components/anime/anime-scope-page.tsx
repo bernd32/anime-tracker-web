@@ -1,15 +1,18 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 
 import { AnimeListView } from '@/features/anime/anime-list-view';
 import { AddAnimeButton } from '@/features/anime/add-anime-button';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api/client';
 import type { ScopeKind } from '@/lib/api/types';
 import { queryKeys } from '@/lib/query/keys';
+import { cn, percent } from '@/lib/utils';
 
 export function AnimeScopePage({ title, description, scopeKind, scopeYear, search = '' }: { title: string; description: string; scopeKind: ScopeKind; scopeYear?: number; search?: string }) {
   const router = useRouter();
@@ -51,7 +54,55 @@ export function AnimeScopePage({ title, description, scopeKind, scopeYear, searc
           <AddAnimeButton />
         </div>
       </div>
+      {scopeKind === 'year' && scopeYear ? <YearCompletionChart year={scopeYear} search={search} /> : null}
       <AnimeListView scopeKind={scopeKind} scopeYear={scopeYear} search={search} />
     </div>
+  );
+}
+
+function YearCompletionChart({ year, search }: { year: number; search: string }) {
+  const query = useQuery({
+    queryKey: queryKeys.animeList({ scope_kind: 'year', scope_year: year, search }),
+    queryFn: () => apiClient.listAnime({ scope_kind: 'year', scope_year: year, search }),
+  });
+
+  if (query.isLoading) {
+    return <Skeleton className="h-32 w-full" />;
+  }
+  if (query.isError || !query.data) {
+    return null;
+  }
+
+  const total = query.data.items.length;
+  const completed = query.data.items.filter((item) => item.status === 'completed').length;
+  const completion = percent(completed, total);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Year Progress</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-3xl font-semibold tracking-tight">{completion}%</p>
+            <p className="text-sm text-muted-foreground">{completed} completed of {total} anime</p>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {total ? `Progress for ${year}` : `No anime added for ${year} yet`}
+          </div>
+        </div>
+        <div className="h-4 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className={cn(
+              'h-full rounded-full bg-gradient-to-r from-green-400 via-green-500 to-emerald-500 transition-[width] duration-300',
+              !total && 'w-0',
+            )}
+            style={{ width: `${completion}%` }}
+            aria-hidden="true"
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
