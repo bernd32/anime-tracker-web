@@ -88,7 +88,6 @@ export const apiClient = {
   getRandomPick: (query: RequestOptions['query']) => request<RandomPickResponse>('/anime/random-pick', { query }),
   getStats: () => request<StatsResponse>('/anime/stats'),
   getYears: () => request<YearListResponse>('/years'),
-  createYearScaffold: (year: number) => request(`/years/${year}/scaffold`, { method: 'POST' }),
   deleteYear: (year: number) => request(`/years/${year}`, { method: 'DELETE' }),
   getPreferences: () => request<Preferences>('/preferences'),
   updatePreferences: (body: Partial<Preferences>) => request<Preferences>('/preferences', { method: 'PATCH', body: JSON.stringify(body) }),

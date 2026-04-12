@@ -17,7 +17,6 @@ import { cn, percent } from '@/lib/utils';
 export function AnimeScopePage({ title, description, scopeKind, scopeYear, search = '' }: { title: string; description: string; scopeKind: ScopeKind; scopeYear?: number; search?: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const scaffold = useMutation({ mutationFn: (year: number) => apiClient.createYearScaffold(year), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: queryKeys.years() }); } });
   const deleteYear = useMutation({
     mutationFn: (year: number) => apiClient.deleteYear(year),
     onSuccess: async () => {
@@ -49,7 +48,6 @@ export function AnimeScopePage({ title, description, scopeKind, scopeYear, searc
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {scopeKind === 'year' && scopeYear ? <Button variant="outline" onClick={() => scaffold.mutate(scopeYear)}>Create scaffold</Button> : null}
           {scopeKind === 'year' && scopeYear ? <Button variant="destructive" onClick={() => confirmDeleteYear(scopeYear)}>Delete year</Button> : null}
           <AddAnimeButton />
         </div>

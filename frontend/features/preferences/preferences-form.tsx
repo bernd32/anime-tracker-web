@@ -25,8 +25,6 @@ export function PreferencesForm() {
   const form = useForm<PreferencesFormValues>({
     resolver: zodResolver(preferencesSchema),
     defaultValues: query.data ?? {
-      density: 'comfortable',
-      theme: 'system',
       last_scope_kind: 'year',
       last_scope_year: null,
       last_used_season: null,
@@ -45,25 +43,6 @@ export function PreferencesForm() {
 
   return (
     <form onSubmit={onSubmit} className="grid max-w-xl gap-4">
-      <Field label="Density">
-        <Select value={form.watch('density')} onValueChange={(value) => form.setValue('density', value as 'compact' | 'comfortable')}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="comfortable">Comfortable</SelectItem>
-            <SelectItem value="compact">Compact</SelectItem>
-          </SelectContent>
-        </Select>
-      </Field>
-      <Field label="Theme">
-        <Select value={form.watch('theme')} onValueChange={(value) => form.setValue('theme', value as 'light' | 'dark' | 'system')}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="system">System</SelectItem>
-            <SelectItem value="light">Light</SelectItem>
-            <SelectItem value="dark">Dark</SelectItem>
-          </SelectContent>
-        </Select>
-      </Field>
       <Field label="Last scope kind">
         <Select value={form.watch('last_scope_kind')} onValueChange={(value) => form.setValue('last_scope_kind', value as 'year' | 'pre2010' | 'all')}>
           <SelectTrigger><SelectValue /></SelectTrigger>

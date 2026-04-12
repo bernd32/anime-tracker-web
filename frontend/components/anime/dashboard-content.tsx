@@ -44,7 +44,7 @@ export function DashboardContent() {
               <p className="mt-2 text-sm text-muted-foreground">{item.counts.completed} completed of {item.counts.total}</p>
             </Link>
           ))}
-          {!years.length ? <p className="text-sm text-muted-foreground">No year pages yet. Create a year scaffold after adding your first anime.</p> : null}
+          {!years.length ? <p className="text-sm text-muted-foreground">No year pages yet. Add your first anime to start building the library.</p> : null}
         </CardContent>
       </Card>
     </div>

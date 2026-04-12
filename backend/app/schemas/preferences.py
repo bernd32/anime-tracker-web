@@ -10,13 +10,9 @@ class PreferencesResponse(APIModel):
     last_scope_kind: Literal["year", "pre2010", "all"] = "year"
     last_scope_year: int | None = Field(default=None, ge=1960, le=2100)
     last_used_season: AnimeSeason | None = None
-    density: Literal["compact", "comfortable"] = "comfortable"
-    theme: Literal["light", "dark", "system"] = "system"
 
 
 class PreferencesUpdateRequest(APIModel):
     last_scope_kind: Literal["year", "pre2010", "all"] | None = None
     last_scope_year: int | None = Field(default=None, ge=1960, le=2100)
     last_used_season: AnimeSeason | None = None
-    density: Literal["compact", "comfortable"] | None = None
-    theme: Literal["light", "dark", "system"] | None = None

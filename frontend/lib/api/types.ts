@@ -35,7 +35,6 @@ export type AnimeListResponse = {
 export type YearListItem = {
   year: number;
   has_entries: boolean;
-  has_scaffold: boolean;
   counts: { total: number; completed: number };
 };
 
@@ -45,8 +44,6 @@ export type Preferences = {
   last_scope_kind: 'year' | 'pre2010' | 'all';
   last_scope_year: number | null;
   last_used_season: AnimeSeason | null;
-  density: 'compact' | 'comfortable';
-  theme: 'light' | 'dark' | 'system';
 };
 
 export type StatsResponse = {

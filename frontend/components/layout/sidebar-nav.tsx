@@ -23,12 +23,14 @@ export function SidebarNav({ pathname, onNavigate }: { pathname: string; onNavig
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Years</p>
         <div className="space-y-1">
           {yearsQuery.isLoading ? <div className="text-sm text-muted-foreground">Loading years…</div> : null}
-          {yearsQuery.data?.items.map((item) => (
+          {yearsQuery.data?.items.map((item) => {
+            const completion = percent(item.counts.completed, item.counts.total);
+            return (
             <NavLink key={item.year} href={`/library/${item.year}` as Route} active={pathname === `/library/${item.year}`} onNavigate={onNavigate}>
-              <span>{item.year}</span>
-              <span className="text-xs text-muted-foreground">{percent(item.counts.completed, item.counts.total)}%</span>
+              <span className={cn(completion < 100 && 'font-semibold text-foreground')}>{item.year}</span>
+              <span className={cn('text-xs text-muted-foreground', completion < 100 && 'font-semibold text-foreground')}>{completion}%</span>
             </NavLink>
-          ))}
+          )})}
           {!yearsQuery.isLoading && !yearsQuery.data?.items.length ? <div className="text-sm text-muted-foreground">No years yet.</div> : null}
         </div>
       </div>
