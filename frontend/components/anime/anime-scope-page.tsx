@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { AnimeListView } from '@/features/anime/anime-list-view';
 import { AddAnimeButton } from '@/features/anime/add-anime-button';
+import { RandomPickButton } from '@/features/anime/random-pick-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -49,6 +50,7 @@ export function AnimeScopePage({ title, description, scopeKind, scopeYear, searc
         </div>
         <div className="flex flex-wrap gap-2">
           {scopeKind === 'year' && scopeYear ? <Button variant="destructive" onClick={() => confirmDeleteYear(scopeYear)}>Delete year</Button> : null}
+          <RandomPickButton params={{ scope_kind: scopeKind, scope_year: scopeYear, search }} />
           <AddAnimeButton />
         </div>
       </div>

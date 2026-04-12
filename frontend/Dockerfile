@@ -42,6 +42,7 @@ RUN apk add --no-cache libc6-compat wget \
     && addgroup -S nextjs && adduser -S nextjs -G nextjs
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 RUN chown -R nextjs:nextjs /app
 USER nextjs
 EXPOSE 20773

@@ -21,11 +21,11 @@ export function AnimeRowActions({ anime }: { anime: AnimeItem }) {
 
   return (
     <>
-      <div className="flex flex-nowrap items-center justify-end gap-2">
+      <div className="flex flex-nowrap items-center justify-end gap-1.5">
         <ActionButton
           asChild
           emoji="✏️"
-          label={`Edit ${animeName}`}
+          label={`Edit`}
         >
           <Link href={`/anime/${anime.id}/edit`}>
             <span aria-hidden="true">✏️</span>
@@ -33,30 +33,30 @@ export function AnimeRowActions({ anime }: { anime: AnimeItem }) {
         </ActionButton>
         <ActionButton
           emoji="ℹ️"
-          label={`Open Shikimori info for ${animeName}`}
+          label={`Info`}
           onClick={() => setOpenInfo(true)}
         />
         <ActionButton
           emoji="⬇️"
-          label={anime.downloaded ? `Mark ${animeName} as not downloaded` : `Mark ${animeName} as downloaded`}
+          label={anime.downloaded ? `Mark as not downloaded` : `Mark as downloaded`}
           onClick={() => updateDownloaded.mutate({ id: anime.id, downloaded: !anime.downloaded })}
           disabled={updateDownloaded.isPending}
         />
         <ActionButton
           emoji="👀"
-          label={`${watchingLabel} for ${animeName}`}
+          label={`${watchingLabel}`}
           onClick={() => updateStatus.mutate({ id: anime.id, status: watchingStatus })}
           disabled={updateStatus.isPending}
         />
         <ActionButton
           emoji="✅"
-          label={`${completedLabel} for ${animeName}`}
+          label={`${completedLabel}`}
           onClick={() => updateStatus.mutate({ id: anime.id, status: completedStatus })}
           disabled={updateStatus.isPending}
         />
         <ActionButton
           emoji="🗑️"
-          label={`Delete ${animeName}`}
+          label={`Delete`}
           onClick={() => deleteAnime.mutate(anime.id)}
           disabled={deleteAnime.isPending}
           destructive
@@ -87,7 +87,7 @@ function ActionButton({
       variant="ghost"
       size="icon"
       className={cn(
-        'h-10 w-10 rounded-xl border border-border/70 bg-background/80 text-lg shadow-sm backdrop-blur-sm hover:bg-background',
+        'h-8 w-8 rounded-lg border border-border/70 bg-background/80 text-base shadow-sm backdrop-blur-sm hover:bg-background',
         destructive && 'border-red-200 bg-red-50 hover:bg-red-100',
       )}
       title={label}
