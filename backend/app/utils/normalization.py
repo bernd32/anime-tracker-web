@@ -1,3 +1,4 @@
+import html
 import re
 import unicodedata
 
@@ -13,7 +14,7 @@ def normalize_name(value: str) -> str:
 
 
 def normalize_text(value: str | None) -> str:
-    return (value or "").strip()
+    return html.unescape((value or "").strip())
 
 
 def normalize_comment(value: str | None) -> str:

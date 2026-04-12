@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api/client';
 import type { AnimeItem, AnimeSeason, ScopeKind } from '@/lib/api/types';
 import { queryKeys } from '@/lib/query/keys';
-import { percent, titleCaseSeason } from '@/lib/utils';
+import { decodeHtmlEntities, percent, titleCaseSeason } from '@/lib/utils';
 
 const seasons: AnimeSeason[] = ['winter', 'spring', 'summer', 'fall', 'other'];
 
@@ -100,7 +100,7 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
           <tbody>
             {items.map((anime) => (
               <tr key={anime.id} className="border-b align-top last:border-b-0">
-                <td className="py-3 pr-4 font-medium">{anime.url ? <a href={anime.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">{anime.name}</a> : anime.name}</td>
+                <td className="py-3 pr-4 font-medium">{anime.url ? <a href={anime.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">{decodeHtmlEntities(anime.name)}</a> : decodeHtmlEntities(anime.name)}</td>
                 <td className="py-3 pr-4">{anime.type || '—'}</td>
                 <td className="py-3 pr-4"><StatusBadge status={anime.status} /></td>
                 <td className="py-3 pr-4">{anime.downloaded ? 'Yes' : 'No'}</td>
@@ -115,7 +115,7 @@ function AnimeCollection({ items }: { items: AnimeItem[] }) {
           <div key={anime.id} className="rounded-lg border p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-2">
-                <p className="font-medium">{anime.url ? <a href={anime.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">{anime.name}</a> : anime.name}</p>
+                <p className="font-medium">{anime.url ? <a href={anime.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">{decodeHtmlEntities(anime.name)}</a> : decodeHtmlEntities(anime.name)}</p>
                 <div className="flex flex-wrap gap-2"><StatusBadge status={anime.status} /><span className="text-sm text-muted-foreground">{anime.type || 'No type'}</span></div>
                 <p className="text-sm text-muted-foreground">Downloaded: {anime.downloaded ? 'Yes' : 'No'}</p>
               </div>
