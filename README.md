@@ -377,22 +377,3 @@ Commands:
 docker compose up --build -d
 docker compose logs -f --tail=200
 ```
-
-## File Map
-
-Top-level structure:
-
-```text
-.
-├── backend/
-├── frontend/
-├── scripts/
-├── compose.yaml
-├── compose.dev.yaml
-├── Makefile
-└── .env.example
-```
-
-## License
-
-No license file is currently included in this repository.

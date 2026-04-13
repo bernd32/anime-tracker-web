@@ -113,3 +113,12 @@ def get_shikimori(
     service: ShikimoriService = Depends(get_shikimori_service),
 ) -> ShikimoriInfoResponse:
     return service.get_info(anime_id, force_refresh=force_refresh)
+
+
+@router.delete("/{anime_id}/shikimori", status_code=204)
+def reset_shikimori_cache(
+    anime_id: int,
+    service: ShikimoriService = Depends(get_shikimori_service),
+) -> Response:
+    service.reset_cache(anime_id)
+    return Response(status_code=204)

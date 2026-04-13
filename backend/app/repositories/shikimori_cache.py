@@ -35,3 +35,9 @@ class ShikimoriCacheRepository:
         self.session.flush()
         self.session.refresh(cache)
         return cache
+
+    def delete(self, search_key: str) -> None:
+        existing = self.session.get(ShikimoriCache, search_key)
+        if existing is not None:
+            self.session.delete(existing)
+            self.session.flush()

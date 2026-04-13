@@ -102,4 +102,5 @@ export const apiClient = {
     return response.blob();
   },
   getShikimori: (id: number, forceRefresh = false) => request<ShikimoriInfoResponse>(`/anime/${id}/shikimori`, { query: { force_refresh: forceRefresh } }),
+  resetShikimori: (id: number) => request<void>(`/anime/${id}/shikimori`, { method: 'DELETE' }),
 };

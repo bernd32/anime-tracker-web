@@ -53,6 +53,30 @@ class NumericScoreResponse:
         }
 
 
+class CharacterLinkResponse:
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return {
+            "data": {
+                "animes": [
+                    {
+                        "russian": "Акэби",
+                        "japanese": "明日ちゃんのセーラー服",
+                        "score": "7.8",
+                        "episodes": 12,
+                        "airedOn": {"date": "2022-01-09"},
+                        "fansubbers": [],
+                        "studios": [{"name": "CloverWorks"}],
+                        "genres": [{"name": "Slice of Life"}],
+                        "description": "Жизнерадостная [character=167838]Комити Акэби[/character] с нетерпением ждала поступления.",
+                    }
+                ]
+            }
+        }
+
+
 class DummyClient:
     def __init__(self):
         self.calls = 0
@@ -70,6 +94,11 @@ class FailingClient:
 class NumericScoreClient:
     def post(self, *args, **kwargs):
         return NumericScoreResponse()
+
+
+class CharacterLinkClient:
+    def post(self, *args, **kwargs):
+        return CharacterLinkResponse()
 
 
 def test_shikimori_uses_cache(client):
@@ -161,5 +190,72 @@ def test_shikimori_accepts_numeric_score_from_cacheable_payload(client):
     response = client.get(f"/api/v1/anime/{anime_id}/shikimori")
     assert response.status_code == 200, response.text
     assert response.json()["result"]["score"] == "7.06"
+
+    client.app.dependency_overrides.clear()
+
+
+def test_shikimori_strips_character_links_from_description(client):
+    create_response = client.post(
+        "/api/v1/anime",
+        json={
+            "name": "Akebi",
+            "year": 2022,
+            "season": "winter",
+            "status": "unwatched",
+            "type": "TV",
+            "comment": "",
+            "url": "",
+            "downloaded": False,
+        },
+    )
+    anime_id = create_response.json()["item"]["id"]
+
+    service = ShikimoriService(session_context, get_settings(), client=CharacterLinkClient())
+    client.app.dependency_overrides[get_shikimori_service] = lambda: service
+
+    response = client.get(f"/api/v1/anime/{anime_id}/shikimori")
+    assert response.status_code == 200, response.text
+    assert response.json()["result"]["description"] == "Жизнерадостная Комити Акэби с нетерпением ждала поступления."
+
+    client.app.dependency_overrides.clear()
+
+
+def test_shikimori_reset_cache_clears_memory_and_database_entries(client):
+    create_response = client.post(
+        "/api/v1/anime",
+        json={
+            "name": "Frieren",
+            "year": 2023,
+            "season": "fall",
+            "status": "unwatched",
+            "type": "TV",
+            "comment": "",
+            "url": "",
+            "downloaded": False,
+        },
+    )
+    anime_id = create_response.json()["item"]["id"]
+
+    dummy_client = DummyClient()
+    service = ShikimoriService(session_context, get_settings(), client=dummy_client)
+    client.app.dependency_overrides[get_shikimori_service] = lambda: service
+
+    first = client.get(f"/api/v1/anime/{anime_id}/shikimori")
+    assert first.status_code == 200
+    assert first.json()["cache"]["source"] == "network"
+    assert dummy_client.calls == 1
+
+    second = client.get(f"/api/v1/anime/{anime_id}/shikimori")
+    assert second.status_code == 200
+    assert second.json()["cache"]["source"] == "memory"
+    assert dummy_client.calls == 1
+
+    reset = client.delete(f"/api/v1/anime/{anime_id}/shikimori")
+    assert reset.status_code == 204
+
+    third = client.get(f"/api/v1/anime/{anime_id}/shikimori")
+    assert third.status_code == 200
+    assert third.json()["cache"]["source"] == "network"
+    assert dummy_client.calls == 2
 
     client.app.dependency_overrides.clear()

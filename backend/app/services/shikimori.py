@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections import OrderedDict
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
@@ -19,6 +20,7 @@ from app.schemas.shikimori import ShikimoriCacheMeta, ShikimoriInfo, ShikimoriIn
 from app.utils.normalization import normalize_name
 
 logger = logging.getLogger(__name__)
+CHARACTER_LINK_PATTERN = re.compile(r"\[character=\d+\](.*?)\[/character\]", re.DOTALL)
 
 
 @dataclass(slots=True)
@@ -58,11 +60,20 @@ class LruCache:
         while len(self._items) > self.capacity:
             self._items.popitem(last=False)
 
+    def delete(self, key: str) -> None:
+        self._items.pop(key, None)
+
 
 def ensure_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def strip_character_links(value: str | None) -> str | None:
+    if value is None:
+        return None
+    return CHARACTER_LINK_PATTERN.sub(r"\1", value)
 
 
 class ShikimoriService:
@@ -135,6 +146,16 @@ class ShikimoriService:
             self.cache.put(search_key, MemoryCacheItem(payload=cache_entry.payload, expires_at=cache_expires_at))
             return self._build_response(anime.id, search_key, cache_entry.payload, "network", cache_expires_at)
 
+    def reset_cache(self, anime_id: int) -> None:
+        with self.session_factory() as session:
+            anime = AnimeRepository(session).get(anime_id)
+            if anime is None:
+                raise NotFoundError(message="Anime not found.", details={"anime_id": anime_id})
+            search_key = normalize_name(anime.name)
+            ShikimoriCacheRepository(session).delete(search_key)
+            session.commit()
+            self.cache.delete(search_key)
+
     def _fetch_from_network(self, anime: Anime) -> tuple[dict[str, Any], datetime]:
         escaped = anime.name.replace('"', '\\"')
         query = (
@@ -165,7 +186,7 @@ class ShikimoriService:
                 "fansubbers": [str(item) for item in (first.get("fansubbers") or [])],
                 "studios": [item.get("name") for item in (first.get("studios") or []) if item and item.get("name")],
                 "genres": [item.get("name") for item in (first.get("genres") or []) if item and item.get("name")],
-                "description": first.get("description"),
+                "description": strip_character_links(first.get("description")),
             }
             expires_at = datetime.now(UTC) + timedelta(seconds=self.settings.shikimori_cache_ttl_seconds)
             return payload, expires_at
@@ -183,9 +204,11 @@ class ShikimoriService:
         *,
         stale: bool = False,
     ) -> ShikimoriInfoResponse:
+        normalized_payload = dict(payload)
+        normalized_payload["description"] = strip_character_links(payload.get("description"))
         return ShikimoriInfoResponse(
             anime_id=anime_id,
             search_key=search_key,
             cache=ShikimoriCacheMeta(source=source, expires_at=ensure_utc(expires_at), stale=stale),
-            result=ShikimoriInfo.model_validate(payload),
+            result=ShikimoriInfo.model_validate(normalized_payload),
         )
