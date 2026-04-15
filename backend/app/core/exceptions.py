@@ -49,6 +49,38 @@ class ValidationAppError(AppError):
         )
 
 
+class UnauthorizedError(AppError):
+    def __init__(
+        self,
+        *,
+        code: str = "unauthorized",
+        message: str = "Authentication required.",
+        details: Mapping[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            code=code,
+            message=message,
+            status_code=HTTPStatus.UNAUTHORIZED,
+            details=details,
+        )
+
+
+class ForbiddenError(AppError):
+    def __init__(
+        self,
+        *,
+        code: str = "forbidden",
+        message: str = "You do not have permission to perform this action.",
+        details: Mapping[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            code=code,
+            message=message,
+            status_code=HTTPStatus.FORBIDDEN,
+            details=details,
+        )
+
+
 class ExternalServiceError(AppError):
     def __init__(self, *, message: str, details: Mapping[str, Any] | None = None) -> None:
         super().__init__(

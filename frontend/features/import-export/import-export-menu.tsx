@@ -5,11 +5,13 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useAuthSession } from '@/features/auth/hooks';
 import { ImportCsvDialog } from '@/features/import-export/import-preview-dialog';
 import { apiClient } from '@/lib/api/client';
 
 export function ImportExportMenu() {
   const [openImport, setOpenImport] = useState(false);
+  const authQuery = useAuthSession();
 
   const download = async () => {
     const blob = await apiClient.exportCsv();
@@ -20,6 +22,10 @@ export function ImportExportMenu() {
     link.click();
     URL.revokeObjectURL(url);
   };
+
+  if (!authQuery.data?.can_write) {
+    return null;
+  }
 
   return (
     <>

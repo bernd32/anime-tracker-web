@@ -1,6 +1,11 @@
 from fastapi import APIRouter, Depends, Query, Response
 
-from app.api.deps import get_anime_service, get_shikimori_service, get_stats_service
+from app.api.deps import (
+    get_anime_service,
+    get_shikimori_service,
+    get_stats_service,
+    require_owner_write_access,
+)
 from app.schemas.anime import (
     AnimeCreateRequest,
     AnimeDownloadedUpdateRequest,
@@ -41,7 +46,7 @@ def list_anime(
     return service.list_anime(query)
 
 
-@router.post("", response_model=AnimeResponse, status_code=201)
+@router.post("", response_model=AnimeResponse, status_code=201, dependencies=[Depends(require_owner_write_access)])
 def create_anime(payload: AnimeCreateRequest, service: AnimeService = Depends(get_anime_service)) -> AnimeResponse:
     return service.create_anime(payload)
 
@@ -73,7 +78,11 @@ def get_anime(anime_id: int, service: AnimeService = Depends(get_anime_service))
     return service.get_anime(anime_id)
 
 
-@router.patch("/{anime_id}", response_model=AnimeResponse)
+@router.patch(
+    "/{anime_id}",
+    response_model=AnimeResponse,
+    dependencies=[Depends(require_owner_write_access)],
+)
 def update_anime(
     anime_id: int,
     payload: AnimeUpdateRequest,
@@ -82,13 +91,17 @@ def update_anime(
     return service.update_anime(anime_id, payload)
 
 
-@router.delete("/{anime_id}", status_code=204)
+@router.delete("/{anime_id}", status_code=204, dependencies=[Depends(require_owner_write_access)])
 def delete_anime(anime_id: int, service: AnimeService = Depends(get_anime_service)) -> Response:
     service.delete_anime(anime_id)
     return Response(status_code=204)
 
 
-@router.post("/{anime_id}/status", response_model=AnimeResponse)
+@router.post(
+    "/{anime_id}/status",
+    response_model=AnimeResponse,
+    dependencies=[Depends(require_owner_write_access)],
+)
 def update_status(
     anime_id: int,
     payload: AnimeStatusUpdateRequest,
@@ -97,7 +110,11 @@ def update_status(
     return service.update_anime(anime_id, AnimeUpdateRequest(status=payload.status))
 
 
-@router.post("/{anime_id}/downloaded", response_model=AnimeResponse)
+@router.post(
+    "/{anime_id}/downloaded",
+    response_model=AnimeResponse,
+    dependencies=[Depends(require_owner_write_access)],
+)
 def update_downloaded(
     anime_id: int,
     payload: AnimeDownloadedUpdateRequest,
@@ -115,7 +132,11 @@ def get_shikimori(
     return service.get_info(anime_id, force_refresh=force_refresh)
 
 
-@router.delete("/{anime_id}/shikimori", status_code=204)
+@router.delete(
+    "/{anime_id}/shikimori",
+    status_code=204,
+    dependencies=[Depends(require_owner_write_access)],
+)
 def reset_shikimori_cache(
     anime_id: int,
     service: ShikimoriService = Depends(get_shikimori_service),

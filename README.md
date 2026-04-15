@@ -98,6 +98,9 @@ Review at minimum:
 - `POSTGRES_PASSWORD`
 - `NEXT_PUBLIC_API_BASE_URL`
 - `CORS_ALLOW_ORIGINS`
+- `AUTH_OWNER_USERNAME`
+- `AUTH_OWNER_PASSWORD`
+- `AUTH_SESSION_SECRET`
 - published ports in `.env`
 
 Default ports:
@@ -233,12 +236,22 @@ Important variables:
 - `LOG_LEVEL`
 - `UVICORN_WORKERS`
 - `CORS_ALLOW_ORIGINS`
+- `AUTH_OWNER_USERNAME`
+- `AUTH_OWNER_PASSWORD`
+- `AUTH_SESSION_SECRET`
+- `AUTH_SESSION_MAX_AGE_SECONDS`
 - `SHIKIMORI_GRAPHQL_URL`
 - `SHIKIMORI_REQUEST_TIMEOUT_SECONDS`
 - `SHIKIMORI_CACHE_TTL_SECONDS`
 - `SHIKIMORI_USER_AGENT`
 - `SHIKIMORI_HTTPS_PROXY_URL`
 - `SHIKIMORI_SOCKS5_PROXY_URL`
+
+The application now uses a single owner login:
+
+- everyone can read the backlog
+- only the signed-in owner can create, edit, delete, import, or change preferences
+- production startup is blocked if `AUTH_OWNER_USERNAME`, `AUTH_OWNER_PASSWORD`, or `AUTH_SESSION_SECRET` are left on insecure defaults
 
 `CORS_ALLOW_ORIGINS` is a JSON array string, for example:
 

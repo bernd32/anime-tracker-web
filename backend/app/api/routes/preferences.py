@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from app.api.deps import get_preferences_service
+from app.api.deps import get_preferences_service, require_owner_write_access
 from app.schemas.preferences import PreferencesResponse, PreferencesUpdateRequest
 from app.services.preferences import PreferencesService
 
@@ -16,5 +16,6 @@ def get_preferences(service: PreferencesService = Depends(get_preferences_servic
 def update_preferences(
     payload: PreferencesUpdateRequest,
     service: PreferencesService = Depends(get_preferences_service),
+    _: None = Depends(require_owner_write_access),
 ) -> PreferencesResponse:
     return service.update_preferences(payload)

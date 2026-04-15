@@ -1,6 +1,12 @@
 export type ScopeKind = 'all' | 'pre2010' | 'year';
 export type AnimeStatus = 'unwatched' | 'watching' | 'completed';
 export type AnimeSeason = 'winter' | 'spring' | 'summer' | 'fall' | 'other';
+export type AuthSession = {
+  auth_enabled: boolean;
+  authenticated: boolean;
+  can_write: boolean;
+  username: string | null;
+};
 
 export type ScopeInfo = {
   kind: ScopeKind;

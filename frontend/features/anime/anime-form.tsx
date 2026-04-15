@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuthSession } from '@/features/auth/hooks';
 import { useMutations } from '@/features/anime/hooks';
 import type { AnimeItem, AnimeSeason, AnimeStatus } from '@/lib/api/types';
 import { animeFormSchema, type AnimeFormValues } from '@/lib/validation/anime';
@@ -20,6 +21,7 @@ const animeTypes = ['TV', 'Movie', 'OVA', 'Special', 'Short', 'Other'] as const;
 
 export function AnimeForm({ initial, mode, onSuccess }: { initial?: Partial<AnimeItem>; mode: 'create' | 'edit'; onSuccess?: () => void }) {
   const router = useRouter();
+  const authQuery = useAuthSession();
   const { createAnime, updateAnime } = useMutations();
   const defaultValues = useMemo<AnimeFormValues>(() => ({
     name: initial?.name ?? '',
@@ -51,6 +53,14 @@ export function AnimeForm({ initial, mode, onSuccess }: { initial?: Partial<Anim
 
   const isPending = createAnime.isPending || updateAnime.isPending;
   const serverError = createAnime.error?.message ?? updateAnime.error?.message;
+
+  if (authQuery.isLoading) {
+    return <p className="text-sm text-muted-foreground">Checking access...</p>;
+  }
+
+  if (!authQuery.data?.can_write) {
+    return <p className="text-sm text-muted-foreground">Sign in as the owner to make changes.</p>;
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">

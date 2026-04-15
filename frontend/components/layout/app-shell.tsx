@@ -9,6 +9,8 @@ import { GlobalSearch } from '@/components/layout/global-search';
 import { SidebarNav } from '@/components/layout/sidebar-nav';
 import { ImportExportMenu } from '@/features/import-export/import-export-menu';
 import { AddAnimeButton } from '@/features/anime/add-anime-button';
+import { AuthControls } from '@/features/auth/auth-controls';
+import { useAuthSession } from '@/features/auth/hooks';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -16,6 +18,8 @@ import { cn } from '@/lib/utils';
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const authQuery = useAuthSession();
+  const canWrite = authQuery.data?.can_write ?? false;
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,7 +37,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="ml-auto flex items-center gap-2">
             <ImportExportMenu />
             <AddAnimeButton />
-            <Link href="/settings" className="text-sm text-muted-foreground hover:text-foreground">Settings</Link>
+            {canWrite ? <Link href="/settings" className="text-sm text-muted-foreground hover:text-foreground">Settings</Link> : null}
+            <AuthControls />
           </div>
         </div>
       </header>

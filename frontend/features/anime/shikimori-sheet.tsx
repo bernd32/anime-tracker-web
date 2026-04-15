@@ -5,12 +5,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthSession } from '@/features/auth/hooks';
 import type { AnimeItem } from '@/lib/api/types';
 import { apiClient } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 
 export function ShikimoriSheet({ anime, open, onOpenChange }: { anime: AnimeItem; open: boolean; onOpenChange: (value: boolean) => void }) {
   const queryClient = useQueryClient();
+  const authQuery = useAuthSession();
   const query = useQuery({
     queryKey: queryKeys.shikimori(anime.id),
     queryFn: () => apiClient.getShikimori(anime.id),
@@ -30,11 +32,13 @@ export function ShikimoriSheet({ anime, open, onOpenChange }: { anime: AnimeItem
           <DialogTitle>{anime.name}</DialogTitle>
           <DialogDescription>Cached Shikimori information</DialogDescription>
         </DialogHeader>
-        <div className="flex justify-end">
-          <Button type="button" variant="outline" size="sm" onClick={() => resetCache.mutate()} disabled={resetCache.isPending}>
-            {resetCache.isPending ? 'Resetting...' : 'Reset cache'}
-          </Button>
-        </div>
+        {authQuery.data?.can_write ? (
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={() => resetCache.mutate()} disabled={resetCache.isPending}>
+              {resetCache.isPending ? 'Resetting...' : 'Reset cache'}
+            </Button>
+          </div>
+        ) : null}
         {query.isLoading ? <Skeleton className="h-48 w-full" /> : null}
         {query.isError ? <p className="text-sm text-red-600">{query.error.message}</p> : null}
         {resetCache.isError ? <p className="text-sm text-red-600">{resetCache.error.message}</p> : null}

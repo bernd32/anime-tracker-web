@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AnimeForm } from '@/features/anime/anime-form';
+import { OwnerGate } from '@/features/auth/owner-gate';
 
 export default async function NewAnimePage({
   searchParams,
@@ -11,9 +12,11 @@ export default async function NewAnimePage({
   const year = Number.isInteger(parsedYear) ? parsedYear : new Date().getFullYear();
 
   return (
-    <Card>
-      <CardHeader><CardTitle>Add anime</CardTitle></CardHeader>
-      <CardContent><AnimeForm mode="create" initial={{ year, type: 'TV' }} /></CardContent>
-    </Card>
+    <OwnerGate>
+      <Card>
+        <CardHeader><CardTitle>Add anime</CardTitle></CardHeader>
+        <CardContent><AnimeForm mode="create" initial={{ year, type: 'TV' }} /></CardContent>
+      </Card>
+    </OwnerGate>
   );
 }

@@ -150,6 +150,10 @@ APP_DEBUG=false
 LOG_LEVEL=INFO
 UVICORN_WORKERS=1
 CORS_ALLOW_ORIGINS=["https://anime.example.com"]
+AUTH_OWNER_USERNAME=owner
+AUTH_OWNER_PASSWORD=REPLACE_WITH_A_LONG_RANDOM_PASSWORD
+AUTH_SESSION_SECRET=REPLACE_WITH_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS
+AUTH_SESSION_MAX_AGE_SECONDS=2592000
 
 SHIKIMORI_GRAPHQL_URL=https://shikimori.one/api/graphql
 SHIKIMORI_REQUEST_TIMEOUT_SECONDS=10
@@ -165,6 +169,7 @@ Notes:
 - Bind all published ports to `127.0.0.1`, not `0.0.0.0`.
 - `NEXT_PUBLIC_API_BASE_URL` must use your public HTTPS domain.
 - `CORS_ALLOW_ORIGINS` must be a JSON array string.
+- Set strong values for `AUTH_OWNER_PASSWORD` and `AUTH_SESSION_SECRET`.
 - Set only one of `SHIKIMORI_HTTPS_PROXY_URL` or `SHIKIMORI_SOCKS5_PROXY_URL` if you need a proxy.
 
 ## 7. Configure DNS
@@ -278,7 +283,9 @@ You should also open the site in a browser and verify:
 
 - the UI loads
 - API-backed pages work
-- adding an anime works
+- anonymous browsing is read only
+- owner sign-in works
+- adding an anime works after signing in
 - Shikimori info loads
 
 ## 12. Updating the deployment

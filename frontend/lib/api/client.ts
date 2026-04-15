@@ -1,6 +1,7 @@
 import type {
   AnimeListResponse,
   AnimeResponse,
+  AuthSession,
   CsvImportResponse,
   Preferences,
   RandomPickResponse,
@@ -11,6 +12,8 @@ import type {
 } from '@/lib/api/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:43968/api/v1';
+const CSRF_COOKIE_NAME = 'anime_tracker_csrf';
+const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 type RequestOptions = RequestInit & { query?: Record<string, string | number | boolean | undefined | null> };
 
@@ -38,13 +41,17 @@ export class ApiClientError extends Error {
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const method = (options.method ?? 'GET').toUpperCase();
+  const csrfToken = UNSAFE_METHODS.has(method) ? readCookie(CSRF_COOKIE_NAME) : undefined;
   let response: Response;
   try {
     response = await fetch(buildUrl(path, options.query), {
       ...options,
+      credentials: 'include',
       headers: {
         Accept: 'application/json',
         ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         ...options.headers,
       },
       cache: 'no-store',
@@ -77,7 +84,24 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return (await response.json()) as T;
 }
 
+function readCookie(name: string) {
+  if (typeof document === 'undefined') return undefined;
+
+  const prefix = `${name}=`;
+  return document.cookie
+    .split('; ')
+    .find((cookie) => cookie.startsWith(prefix))
+    ?.slice(prefix.length);
+}
+
 export const apiClient = {
+  getAuthSession: () => request<AuthSession>('/auth/session'),
+  login: (username: string, password: string) =>
+    request<AuthSession>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }),
+  logout: () => request<AuthSession>('/auth/logout', { method: 'POST' }),
   listAnime: (query: RequestOptions['query']) => request<AnimeListResponse>('/anime', { query }),
   getAnime: (id: number) => request<AnimeResponse>(`/anime/${id}`),
   createAnime: (body: object) => request<AnimeResponse>('/anime', { method: 'POST', body: JSON.stringify(body) }),
@@ -97,7 +121,7 @@ export const apiClient = {
     return request<CsvImportResponse>('/import/csv', { method: 'POST', body: formData, query: { dry_run: dryRun } });
   },
   exportCsv: async () => {
-    const response = await fetch(buildUrl('/export/csv'), { cache: 'no-store' });
+    const response = await fetch(buildUrl('/export/csv'), { cache: 'no-store', credentials: 'include' });
     if (!response.ok) throw new Error('Failed to export CSV');
     return response.blob();
   },
