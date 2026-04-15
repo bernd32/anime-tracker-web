@@ -31,7 +31,13 @@ export function AnimeListView({ scopeKind, scopeYear, search = '' }: { scopeKind
     return (
       <div className="space-y-6">
         {seasons.map((season) => (
-          <Section key={season} title={titleCaseSeason(season)} items={grouped.get(season) ?? []} emptyHint={`No anime in ${titleCaseSeason(season)}.`} />
+          <Section
+            key={season}
+            title={`${titleCaseSeason(season)} (${(grouped.get(season) ?? []).length})`}
+            items={grouped.get(season) ?? []}
+            emptyHint={`No anime in ${titleCaseSeason(season)}.`}
+            addAnimeYear={scopeYear}
+          />
         ))}
       </div>
     );
@@ -44,25 +50,25 @@ export function AnimeListView({ scopeKind, scopeYear, search = '' }: { scopeKind
   );
 }
 
-function Section({ title, items, emptyHint }: { title: string; items: AnimeItem[]; emptyHint: string }) {
+function Section({ title, items, emptyHint, addAnimeYear }: { title: string; items: AnimeItem[]; emptyHint: string; addAnimeYear?: number }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        {!items.length ? <EmptySection hint={emptyHint} /> : <AnimeCollection items={items} />}
+        {!items.length ? <EmptySection hint={emptyHint} year={addAnimeYear} /> : <AnimeCollection items={items} />}
       </CardContent>
     </Card>
   );
 }
 
-function EmptySection({ hint }: { hint: string }) {
+function EmptySection({ hint, year }: { hint: string; year?: number }) {
   return (
     <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
       <p>{hint}</p>
       <Button asChild variant="outline" className="mt-4">
-        <Link href="/anime/new">Add anime</Link>
+        <Link href={year ? `/anime/new?year=${year}` : '/anime/new'}>Add anime</Link>
       </Button>
     </div>
   );

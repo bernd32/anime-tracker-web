@@ -51,7 +51,7 @@ export function AnimeScopePage({ title, description, scopeKind, scopeYear, searc
         <div className="flex flex-wrap gap-2">
           {scopeKind === 'year' && scopeYear ? <Button variant="destructive" onClick={() => confirmDeleteYear(scopeYear)}>Delete year</Button> : null}
           <RandomPickButton params={{ scope_kind: scopeKind, scope_year: scopeYear, search }} />
-          <AddAnimeButton />
+          <AddAnimeButton year={scopeYear} />
         </div>
       </div>
       {scopeKind === 'year' && scopeYear ? <YearCompletionChart year={scopeYear} search={search} /> : null}

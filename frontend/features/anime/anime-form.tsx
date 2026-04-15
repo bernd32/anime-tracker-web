@@ -26,11 +26,11 @@ export function AnimeForm({ initial, mode, onSuccess }: { initial?: Partial<Anim
     year: initial?.year ?? new Date().getFullYear(),
     season: initial?.season ?? 'other',
     status: initial?.status ?? 'unwatched',
-    type: initial?.type ?? '',
+    type: initial?.type ?? (mode === 'create' ? 'TV' : ''),
     comment: initial?.comment ?? '',
     url: initial?.url ?? '',
     downloaded: initial?.downloaded ?? false,
-  }), [initial]);
+  }), [initial, mode]);
 
   const form = useForm<AnimeFormValues>({ resolver: zodResolver(animeFormSchema), defaultValues });
   const year = form.watch('year');
