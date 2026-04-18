@@ -57,16 +57,17 @@ export function AnimeScopePage({ title, description, scopeKind, scopeYear, searc
           <AddAnimeButton year={scopeYear} />
         </div>
       </div>
-      {scopeKind === 'year' && scopeYear ? <YearCompletionChart year={scopeYear} search={search} /> : null}
+      {scopeKind === 'year' && scopeYear ? <ScopeCompletionChart scopeKind={scopeKind} scopeYear={scopeYear} search={search} /> : null}
+      {scopeKind === 'pre2010' ? <ScopeCompletionChart scopeKind={scopeKind} search={search} /> : null}
       <AnimeListView scopeKind={scopeKind} scopeYear={scopeYear} search={search} />
     </div>
   );
 }
 
-function YearCompletionChart({ year, search }: { year: number; search: string }) {
+function ScopeCompletionChart({ scopeKind, scopeYear, search }: { scopeKind: ScopeKind; scopeYear?: number; search: string }) {
   const query = useQuery({
-    queryKey: queryKeys.animeList({ scope_kind: 'year', scope_year: year, search }),
-    queryFn: () => apiClient.listAnime({ scope_kind: 'year', scope_year: year, search }),
+    queryKey: queryKeys.animeList({ scope_kind: scopeKind, scope_year: scopeYear, search }),
+    queryFn: () => apiClient.listAnime({ scope_kind: scopeKind, scope_year: scopeYear, search }),
   });
 
   if (query.isLoading) {
@@ -79,11 +80,12 @@ function YearCompletionChart({ year, search }: { year: number; search: string })
   const total = query.data.items.length;
   const completed = query.data.items.filter((item) => item.status === 'completed').length;
   const completion = percent(completed, total);
+  const progressLabel = scopeKind === 'year' && scopeYear ? `${scopeYear}` : 'Pre-2010';
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Year Progress</CardTitle>
+        <CardTitle className="text-base">Progress</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -92,7 +94,7 @@ function YearCompletionChart({ year, search }: { year: number; search: string })
             <p className="text-sm text-muted-foreground">{completed} completed of {total} anime</p>
           </div>
           <div className="text-sm text-muted-foreground">
-            {total ? `Progress for ${year}` : `No anime added for ${year} yet`}
+            {total ? `Progress for ${progressLabel}` : `No anime added for ${progressLabel} yet`}
           </div>
         </div>
         <div className="h-4 overflow-hidden rounded-full bg-slate-100">
