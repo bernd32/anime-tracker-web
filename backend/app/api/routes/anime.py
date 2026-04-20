@@ -126,10 +126,21 @@ def update_downloaded(
 @router.get("/{anime_id}/shikimori", response_model=ShikimoriInfoResponse)
 def get_shikimori(
     anime_id: int,
-    force_refresh: bool = Query(default=False),
     service: ShikimoriService = Depends(get_shikimori_service),
 ) -> ShikimoriInfoResponse:
-    return service.get_info(anime_id, force_refresh=force_refresh)
+    return service.get_info(anime_id)
+
+
+@router.post(
+    "/{anime_id}/shikimori/refresh",
+    response_model=ShikimoriInfoResponse,
+    dependencies=[Depends(require_owner_write_access)],
+)
+def refresh_shikimori(
+    anime_id: int,
+    service: ShikimoriService = Depends(get_shikimori_service),
+) -> ShikimoriInfoResponse:
+    return service.get_info(anime_id, force_refresh=True)
 
 
 @router.delete(

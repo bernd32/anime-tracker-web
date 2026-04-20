@@ -160,12 +160,45 @@ def test_shikimori_returns_stale_cache_on_network_failure(client):
     failing_service.cache = warm_service.cache
     client.app.dependency_overrides[get_shikimori_service] = lambda: failing_service
 
-    second = client.get(f"/api/v1/anime/{anime_id}/shikimori?force_refresh=true")
+    second = client.post(f"/api/v1/anime/{anime_id}/shikimori/refresh")
     assert second.status_code == 200, second.text
     assert second.json()["cache"]["source"] == "memory"
     assert second.json()["cache"]["stale"] is True
 
     client.app.dependency_overrides.clear()
+
+
+def test_shikimori_refresh_requires_owner_write_access(anonymous_client):
+    create_response = anonymous_client.post(
+        "/api/v1/auth/login",
+        json={"username": "owner", "password": "test-owner-password"},
+    )
+    assert create_response.status_code == 200
+    csrf_token = anonymous_client.cookies.get("anime_tracker_csrf")
+    assert csrf_token
+
+    create_anime = anonymous_client.post(
+        "/api/v1/anime",
+        headers={"X-CSRF-Token": csrf_token},
+        json={
+            "name": "Frieren",
+            "year": 2023,
+            "season": "fall",
+            "status": "unwatched",
+            "type": "TV",
+            "comment": "",
+            "url": "",
+            "downloaded": False,
+        },
+    )
+    assert create_anime.status_code == 201
+    anime_id = create_anime.json()["item"]["id"]
+
+    anonymous_client.post("/api/v1/auth/logout")
+
+    response = anonymous_client.post(f"/api/v1/anime/{anime_id}/shikimori/refresh")
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "authentication_required"
 
 
 def test_shikimori_accepts_numeric_score_from_cacheable_payload(client):
