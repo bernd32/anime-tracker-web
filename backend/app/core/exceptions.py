@@ -81,6 +81,22 @@ class ForbiddenError(AppError):
         )
 
 
+class TooManyRequestsError(AppError):
+    def __init__(
+        self,
+        *,
+        code: str = "too_many_requests",
+        message: str = "Too many requests.",
+        details: Mapping[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            code=code,
+            message=message,
+            status_code=HTTPStatus.TOO_MANY_REQUESTS,
+            details=details,
+        )
+
+
 class ExternalServiceError(AppError):
     def __init__(self, *, message: str, details: Mapping[str, Any] | None = None) -> None:
         super().__init__(

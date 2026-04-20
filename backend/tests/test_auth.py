@@ -93,3 +93,72 @@ def test_write_routes_reject_missing_or_invalid_csrf(anonymous_client):
     )
     assert invalid_csrf.status_code == status.HTTP_403_FORBIDDEN
     assert invalid_csrf.json()["error"]["code"] == "csrf_invalid"
+
+
+def test_login_is_rate_limited_after_repeated_failures(anonymous_client, monkeypatch):
+    import app.core.auth as auth_module
+
+    now = {"value": 10_000.0}
+    monkeypatch.setattr(auth_module.time, "monotonic", lambda: now["value"])
+
+    for _ in range(4):
+        response = anonymous_client.post(
+            "/api/v1/auth/login",
+            json={"username": "owner", "password": "wrong-password"},
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.json()["error"]["code"] == "authentication_failed"
+
+    blocked = anonymous_client.post(
+        "/api/v1/auth/login",
+        json={"username": "owner", "password": "wrong-password"},
+    )
+    assert blocked.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+    assert blocked.json()["error"]["code"] == "login_rate_limited"
+    assert blocked.json()["error"]["details"]["retry_after_seconds"] == 900
+
+    still_blocked = anonymous_client.post(
+        "/api/v1/auth/login",
+        json={"username": "owner", "password": "test-owner-password"},
+    )
+    assert still_blocked.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+
+    now["value"] += 901
+    recovered = anonymous_client.post(
+        "/api/v1/auth/login",
+        json={"username": "owner", "password": "test-owner-password"},
+    )
+    assert recovered.status_code == status.HTTP_200_OK
+
+
+def test_successful_login_resets_failed_login_counter(anonymous_client, monkeypatch):
+    import app.core.auth as auth_module
+
+    now = {"value": 20_000.0}
+    monkeypatch.setattr(auth_module.time, "monotonic", lambda: now["value"])
+
+    for _ in range(4):
+        response = anonymous_client.post(
+            "/api/v1/auth/login",
+            json={"username": "owner", "password": "wrong-password"},
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    success = anonymous_client.post(
+        "/api/v1/auth/login",
+        json={"username": "owner", "password": "test-owner-password"},
+    )
+    assert success.status_code == status.HTTP_200_OK
+
+    for _ in range(4):
+        response = anonymous_client.post(
+            "/api/v1/auth/login",
+            json={"username": "owner", "password": "wrong-password"},
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    blocked = anonymous_client.post(
+        "/api/v1/auth/login",
+        json={"username": "owner", "password": "wrong-password"},
+    )
+    assert blocked.status_code == status.HTTP_429_TOO_MANY_REQUESTS

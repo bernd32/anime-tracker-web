@@ -101,6 +101,9 @@ Review at minimum:
 - `AUTH_OWNER_USERNAME`
 - `AUTH_OWNER_PASSWORD`
 - `AUTH_SESSION_SECRET`
+- `AUTH_LOGIN_MAX_FAILURES`
+- `AUTH_LOGIN_WINDOW_SECONDS`
+- `AUTH_LOGIN_LOCKOUT_SECONDS`
 - published ports in `.env`
 
 Default ports:
@@ -240,6 +243,9 @@ Important variables:
 - `AUTH_OWNER_PASSWORD`
 - `AUTH_SESSION_SECRET`
 - `AUTH_SESSION_MAX_AGE_SECONDS`
+- `AUTH_LOGIN_MAX_FAILURES`
+- `AUTH_LOGIN_WINDOW_SECONDS`
+- `AUTH_LOGIN_LOCKOUT_SECONDS`
 - `SHIKIMORI_GRAPHQL_URL`
 - `SHIKIMORI_REQUEST_TIMEOUT_SECONDS`
 - `SHIKIMORI_CACHE_TTL_SECONDS`
@@ -252,6 +258,7 @@ The application now uses a single owner login:
 - everyone can read the backlog
 - only the signed-in owner can create, edit, delete, import, or change preferences
 - production startup is blocked if `AUTH_OWNER_USERNAME`, `AUTH_OWNER_PASSWORD`, or `AUTH_SESSION_SECRET` are left on insecure defaults
+- repeated failed owner logins are throttled using the `AUTH_LOGIN_*` settings
 
 `CORS_ALLOW_ORIGINS` is a JSON array string, for example:
 

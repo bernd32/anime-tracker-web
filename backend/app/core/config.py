@@ -38,6 +38,18 @@ class Settings(BaseSettings):
         default=60 * 60 * 24 * 30,
         validation_alias=AliasChoices("AUTH_SESSION_MAX_AGE_SECONDS", "auth_session_max_age_seconds"),
     )
+    auth_login_max_failures: int = Field(
+        default=5,
+        validation_alias=AliasChoices("AUTH_LOGIN_MAX_FAILURES", "auth_login_max_failures"),
+    )
+    auth_login_window_seconds: int = Field(
+        default=60 * 10,
+        validation_alias=AliasChoices("AUTH_LOGIN_WINDOW_SECONDS", "auth_login_window_seconds"),
+    )
+    auth_login_lockout_seconds: int = Field(
+        default=60 * 15,
+        validation_alias=AliasChoices("AUTH_LOGIN_LOCKOUT_SECONDS", "auth_login_lockout_seconds"),
+    )
 
     database_url: str = Field(
         default="sqlite+pysqlite:///./anime_backlog.db",
@@ -93,6 +105,12 @@ class Settings(BaseSettings):
             raise ValueError("AUTH_OWNER_PASSWORD must be at least 12 characters long.")
         if len(self.auth_session_secret) < 32:
             raise ValueError("AUTH_SESSION_SECRET must be at least 32 characters long.")
+        if self.auth_login_max_failures < 1:
+            raise ValueError("AUTH_LOGIN_MAX_FAILURES must be at least 1.")
+        if self.auth_login_window_seconds < 1:
+            raise ValueError("AUTH_LOGIN_WINDOW_SECONDS must be at least 1.")
+        if self.auth_login_lockout_seconds < 1:
+            raise ValueError("AUTH_LOGIN_LOCKOUT_SECONDS must be at least 1.")
 
         uses_insecure_defaults = (
             self.auth_owner_username == self.DEFAULT_AUTH_OWNER_USERNAME

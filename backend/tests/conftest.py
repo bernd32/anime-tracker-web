@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core.auth import reset_login_throttle
 from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import get_engine
@@ -31,7 +32,11 @@ def _build_client(
     monkeypatch.setenv("AUTH_OWNER_USERNAME", "owner")
     monkeypatch.setenv("AUTH_OWNER_PASSWORD", "test-owner-password")
     monkeypatch.setenv("AUTH_SESSION_SECRET", "test-session-secret-with-sufficient-length")
+    monkeypatch.setenv("AUTH_LOGIN_MAX_FAILURES", "5")
+    monkeypatch.setenv("AUTH_LOGIN_WINDOW_SECONDS", "600")
+    monkeypatch.setenv("AUTH_LOGIN_LOCKOUT_SECONDS", "900")
     get_settings.cache_clear()
+    reset_login_throttle()
 
     import app.db.session as db_session_module
 
@@ -60,3 +65,4 @@ def _build_client(
     db_session_module._engine = None
     db_session_module._SessionLocal = None
     get_settings.cache_clear()
+    reset_login_throttle()

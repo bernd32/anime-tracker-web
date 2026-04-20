@@ -4,12 +4,15 @@ import hmac
 import json
 import secrets
 import time
-from dataclasses import dataclass
+from collections import deque
+from dataclasses import dataclass, field
+from math import ceil
+from threading import Lock
 
-from fastapi import Response
+from fastapi import Request, Response
 
 from app.core.config import Settings
-from app.core.exceptions import ForbiddenError
+from app.core.exceptions import ForbiddenError, TooManyRequestsError
 
 SESSION_COOKIE_NAME = "anime_tracker_session"
 CSRF_COOKIE_NAME = "anime_tracker_csrf"
@@ -23,6 +26,84 @@ class OwnerSession:
     csrf_token: str
     issued_at: int
     expires_at: int
+
+
+@dataclass(slots=True)
+class FailedLoginState:
+    attempts: deque[float] = field(default_factory=deque)
+    blocked_until: float = 0.0
+
+
+class LoginThrottle:
+    def __init__(self) -> None:
+        self._states: dict[str, FailedLoginState] = {}
+        self._lock = Lock()
+        self._operation_count = 0
+
+    def ensure_allowed(self, settings: Settings, key: str) -> None:
+        now = time.monotonic()
+        with self._lock:
+            self._operation_count += 1
+            self._cleanup_stale_states(settings, now)
+            state = self._states.get(key)
+            if state is None:
+                return
+            self._prune_attempts(state, settings, now)
+            if state.blocked_until > now:
+                raise TooManyRequestsError(
+                    code="login_rate_limited",
+                    message="Too many failed login attempts. Try again later.",
+                    details={"retry_after_seconds": ceil(state.blocked_until - now)},
+                )
+            if not state.attempts:
+                self._states.pop(key, None)
+
+    def register_failure(self, settings: Settings, key: str) -> None:
+        now = time.monotonic()
+        with self._lock:
+            self._operation_count += 1
+            self._cleanup_stale_states(settings, now)
+            state = self._states.setdefault(key, FailedLoginState())
+            self._prune_attempts(state, settings, now)
+            state.attempts.append(now)
+            if len(state.attempts) < settings.auth_login_max_failures:
+                return
+            state.attempts.clear()
+            state.blocked_until = now + settings.auth_login_lockout_seconds
+            raise TooManyRequestsError(
+                code="login_rate_limited",
+                message="Too many failed login attempts. Try again later.",
+                details={"retry_after_seconds": settings.auth_login_lockout_seconds},
+            )
+
+    def reset(self, key: str) -> None:
+        with self._lock:
+            self._states.pop(key, None)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._states.clear()
+            self._operation_count = 0
+
+    def _prune_attempts(self, state: FailedLoginState, settings: Settings, now: float) -> None:
+        cutoff = now - settings.auth_login_window_seconds
+        while state.attempts and state.attempts[0] <= cutoff:
+            state.attempts.popleft()
+        if state.blocked_until <= now and not state.attempts:
+            state.blocked_until = 0.0
+
+    def _cleanup_stale_states(self, settings: Settings, now: float) -> None:
+        if self._operation_count % 32 != 0:
+            return
+        stale_after = now - max(settings.auth_login_window_seconds, settings.auth_login_lockout_seconds)
+        for key, state in list(self._states.items()):
+            self._prune_attempts(state, settings, now)
+            latest_attempt = state.attempts[-1] if state.attempts else 0.0
+            if state.blocked_until <= now and latest_attempt <= stale_after:
+                self._states.pop(key, None)
+
+
+_login_throttle = LoginThrottle()
 
 
 def verify_owner_credentials(settings: Settings, username: str, password: str) -> bool:
@@ -142,6 +223,40 @@ def validate_csrf(session: OwnerSession, csrf_cookie: str | None, csrf_header: s
             code="csrf_invalid",
             message="The CSRF token is invalid.",
         )
+
+
+def assert_login_not_rate_limited(settings: Settings, request: Request, username: str) -> None:
+    _login_throttle.ensure_allowed(settings, login_throttle_key(request, username))
+
+
+def record_failed_login(settings: Settings, request: Request, username: str) -> None:
+    _login_throttle.register_failure(settings, login_throttle_key(request, username))
+
+
+def reset_failed_logins(request: Request, username: str) -> None:
+    _login_throttle.reset(login_throttle_key(request, username))
+
+
+def reset_login_throttle() -> None:
+    _login_throttle.clear()
+
+
+def login_throttle_key(request: Request, username: str) -> str:
+    return f"{_client_identity(request)}:{username.strip().lower()}"
+
+
+def _client_identity(request: Request) -> str:
+    client_host = (request.client.host if request.client else "").strip()
+    if client_host in {"127.0.0.1", "::1", "localhost"}:
+        forwarded_for = request.headers.get("x-forwarded-for", "")
+        if forwarded_for:
+            forwarded_host = forwarded_for.split(",", 1)[0].strip()
+            if forwarded_host:
+                return forwarded_host
+        real_ip = request.headers.get("x-real-ip", "").strip()
+        if real_ip:
+            return real_ip
+    return client_host or "unknown"
 
 
 def _b64encode(data: bytes) -> str:

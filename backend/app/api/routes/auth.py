@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 
 from app.api.deps import get_optional_owner_session
 from app.core.auth import (
     OwnerSession,
+    assert_login_not_rate_limited,
     clear_auth_cookies,
     create_owner_session_token,
+    record_failed_login,
+    reset_failed_logins,
     set_auth_cookies,
     verify_owner_credentials,
 )
@@ -21,15 +24,15 @@ def get_session(owner_session: OwnerSession | None = Depends(get_optional_owner_
 
 
 @router.post("/login", response_model=AuthSessionResponse)
-def login(payload: LoginRequest, response: Response) -> AuthSessionResponse:
+def login(payload: LoginRequest, request: Request, response: Response) -> AuthSessionResponse:
     settings = get_settings()
+    assert_login_not_rate_limited(settings, request, payload.username)
     if not verify_owner_credentials(settings, payload.username, payload.password):
-        raise UnauthorizedError(
-            code="authentication_failed",
-            message="Invalid username or password.",
-        )
+        record_failed_login(settings, request, payload.username)
+        raise UnauthorizedError(code="authentication_failed", message="Invalid username or password.")
 
     session_token, owner_session = create_owner_session_token(settings)
+    reset_failed_logins(request, payload.username)
     set_auth_cookies(response, settings, session_token, owner_session)
     return _session_response(owner_session)
 
