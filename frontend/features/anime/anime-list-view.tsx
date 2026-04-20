@@ -43,9 +43,14 @@ export function AnimeListView({ scopeKind, scopeYear, search = '' }: { scopeKind
     );
   }
 
+  const visibleItems =
+    scopeKind === 'pre2010'
+      ? [...items].sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }))
+      : items;
+
   return (
     <div className="space-y-6">
-      <Section title={scopeKind === 'pre2010' ? 'Pre-2010 anime' : 'Anime'} items={items} emptyHint="No anime found in this scope." />
+      <Section title={scopeKind === 'pre2010' ? 'Pre-2010 anime' : 'Anime'} items={visibleItems} emptyHint="No anime found in this scope." />
     </div>
   );
 }
