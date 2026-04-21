@@ -51,35 +51,12 @@ Key directories:
 - Settings: Pydantic Settings
 - Driver: Psycopg 3
 
-Key directories:
-
-- `backend/app/api`: route handlers and dependencies
-- `backend/app/services`: business logic
-- `backend/app/repositories`: persistence helpers
-- `backend/app/db`: models and DB setup
-- `backend/alembic`: migrations
-- `backend/tests`: pytest test suite
-
 ### Runtime
 
 - `compose.yaml`: production-like stack
 - `compose.dev.yaml`: local development overrides
 - `Makefile`: common operational shortcuts
 - `scripts/`: backup, restore, rsync deploy helpers
-
-## Requirements
-
-### Docker path
-
-- Docker
-- Docker Compose plugin
-
-### Local non-Docker path
-
-- Python `3.13+`
-- Node.js `22+`
-- npm
-- PostgreSQL
 
 ## Quick Start
 
@@ -122,12 +99,6 @@ Open:
 
 - frontend: `http://localhost:20773`
 - backend healthcheck: `http://localhost:43968/api/v1/healthz`
-
-### 3. View logs
-
-```sh
-docker compose logs -f --tail=200
-```
 
 ## Development
 
@@ -253,7 +224,7 @@ Important variables:
 - `SHIKIMORI_HTTPS_PROXY_URL`
 - `SHIKIMORI_SOCKS5_PROXY_URL`
 
-The application now uses a single owner login:
+The application uses a single owner login:
 
 - everyone can read the backlog
 - only the signed-in owner can create, edit, delete, import, or change preferences
@@ -356,44 +327,4 @@ make ps
 make db-shell
 make api-shell
 make front-shell
-```
-
-## Deployment
-
-There is a simple rsync-based deployment helper:
-
-- `scripts/server-deploy.sh`
-
-It syncs the project directory to the configured remote host/path. Review and adjust:
-
-- source path
-- destination path
-- remote alias
-- rsync exclude rules
-
-Exclude file:
-
-- `scripts/rsyncignore.txt`
-
-## Security Notes
-
-- Compose drops Linux capabilities for `api` and `frontend`
-- `no-new-privileges` is enabled for those containers
-- Next telemetry is disabled in the production image
-- External comment links render as normal text unless they are valid `http`/`https` URLs
-- Linkified comment URLs use safe external link attributes
-
-## Project Status Notes
-
-This repository has been iterated actively. If behavior looks wrong after a rebuild:
-
-1. rebuild the images
-2. hard-refresh the browser
-3. inspect fresh container logs after reproducing the issue
-
-Commands:
-
-```sh
-docker compose up --build -d
-docker compose logs -f --tail=200
 ```

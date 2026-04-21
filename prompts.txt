@@ -1,0 +1,440 @@
+Stage 1 — product spec + architecture
+
+You are a senior staff full-stack engineer. Rebuild the attached Python desktop app as a production-ready web application for 2026.
+
+Goal:
+Create a self-hosted anime backlog tracker that reproduces the desktop app’s behavior as a modern web app, optimized for Docker deployment.
+
+Source behavior to preserve:
+- Anime entity fields: id, name, year, season, status, type, comment, url, downloaded
+- Status values: unwatched, watching, completed
+- A dedicated “Pre-2010” section for entries with year < 2010
+- Separate year views for year >= 2010, each split into seasons: winter, spring, summer, fall, other
+- Search/filter by anime name
+- CRUD operations for anime entries
+- Quick actions: toggle status, toggle downloaded
+- Import/export CSV
+- Random pick from unwatched anime in the currently selected year/pre-2010 section
+- Statistics view: total, completed, completion percentage, counts by type
+- Shikimori info dialog equivalent: fetch anime metadata from Shikimori and cache it
+- Persist basic UI preferences such as last selected view and table density / scale equivalent
+
+Technical requirements:
+- Frontend: Next.js App Router + TypeScript
+- Backend API: FastAPI + Pydantic v2 + SQLModel or SQLAlchemy 2.0 typed ORM
+- Database: PostgreSQL for production, SQLite allowed for local dev only
+- Containerized with Docker and docker compose
+- Clean architecture, type safety, accessibility, responsive layout, testability, secure defaults
+- No inline mock data in final code
+- Use server/client boundaries sensibly
+- Use optimistic UI only where safe
+- Avoid overengineering, but keep code modular and production-quality
+
+Deliverables:
+1. A concise architecture decision record
+2. Monorepo folder structure
+3. Database schema
+4. API contract
+5. Frontend route map
+6. Component map
+7. State management strategy
+8. Error handling strategy
+9. Docker/deployment plan
+10. Step-by-step implementation plan
+
+Important:
+- Preserve feature parity with the desktop app, but redesign the UX for the web
+- Replace desktop tabs with a web-appropriate information architecture
+- Prefer best practices current in 2026
+- Explain tradeoffs briefly
+- Then start implementing
+
+---
+
+Stage 2 — backend generation
+
+Build the backend for this app.
+
+Stack:
+- FastAPI
+- Python 3.14+
+- Pydantic v2
+- SQLModel or SQLAlchemy 2.0 typed ORM
+- Alembic migrations
+- PostgreSQL in production
+- pytest for tests
+
+Domain:
+Anime backlog tracker with these fields:
+- id: integer primary key
+- name: string, required
+- year: integer, required
+- season: enum ["winter", "spring", "summer", "fall", ""] or nullable normalized equivalent
+- status: enum ["unwatched", "watching", "completed"], required, default "unwatched"
+- type: string
+- comment: text
+- url: optional validated http/https URL
+- downloaded: boolean, default false
+
+Additional cache table:
+- shiki_cache
+- search_key
+- payload JSON
+- expires_at timestamp
+
+Implement:
+- REST API with OpenAPI docs
+- CRUD endpoints for anime
+- Bulk CSV import endpoint
+- CSV export endpoint
+- Stats endpoint
+- Random unwatched pick endpoint, scoped by current section/year
+- Shikimori metadata lookup endpoint with caching
+- Filter/query endpoints for:
+  - pre-2010 entries
+  - all active years >= 2010
+  - entries by year and season
+  - full-text-ish search by name
+- Validation and normalization rules
+- Structured error responses
+- Idempotent import behavior that avoids duplicates by name/year/season or improved normalized uniqueness rule
+- Proper indexes
+- Logging
+- Healthcheck endpoint
+- CORS config for self-hosted frontend
+- Settings via environment variables
+- Migrations and seed script
+
+Constraints:
+- Do not HTML-escape text before storing it in the DB
+- Store canonical raw values; escape only at render time
+- Use transactions correctly
+- Use service layer + repository/data-access separation only if it stays simple
+- Add unit and API tests
+- Generate production-grade code, not pseudocode
+
+Output:
+- File tree
+- Full code for all backend files
+- Commands to run locally
+- Commands to run in Docker
+
+---
+
+Stage 3 — frontend generation
+
+Build the frontend for this app as a modern web UI.
+
+Stack:
+- Next.js App Router
+- TypeScript
+- React 19
+- Tailwind CSS
+- shadcn/ui
+- TanStack Query for server state
+- React Hook Form + Zod for forms
+- Accessible components and keyboard-friendly interactions
+
+Product requirements:
+Recreate the Python anime tracker as a responsive web app.
+
+Main UX:
+- Sidebar or top navigation with:
+  - Dashboard
+  - Pre-2010
+  - Years
+  - Import/Export
+  - Settings
+- For years >= 2010, show a year page with seasonal sections: Winter, Spring, Summer, Fall, Other
+- Each section shows:
+  - completion summary
+  - anime table or card list depending on screen size
+- Pre-2010 page groups old entries in one list
+- Search field filters by anime name
+- Actions per anime:
+  - view info
+  - edit
+  - delete
+  - toggle downloaded
+  - set status
+- Statistics page:
+  - total entries
+  - completed count
+  - completion %
+  - counts by type
+- Random pick action for the currently viewed scope
+- CSV import/export UI
+- Shikimori info modal/drawer with cached backend data
+- Persist user preferences:
+  - last visited section
+  - compact vs comfortable table density
+  - optional sort preference
+
+Design requirements:
+- Clean self-hosted dashboard aesthetic
+- Fast and keyboard-friendly
+- Mobile responsive
+- Empty states, loading states, optimistic mutations where safe
+- Accessible labels, focus states, semantic table usage on desktop
+- Comment text should auto-link URLs
+- External anime URL should be clickable
+- Completed entries visually distinct
+- Watching entries visually distinct
+- Downloaded state visually distinct but subtle
+
+Engineering requirements:
+- Typed API client
+- Central query keys
+- Reusable data table/list components
+- No duplicated fetching logic
+- Error boundary and toast system
+- URL-based state where it improves shareability
+- Server/client component boundaries chosen deliberately
+- Avoid unnecessary global state
+- Include component tests for critical UI
+- Include e2e tests for major flows
+
+Output:
+- Route structure
+- Component architecture
+- Full implementation
+- Example screenshots as textual descriptions
+- Run instructions
+
+---
+
+Stage 4 — API contract first, before coding
+
+Before writing code, define the complete API contract for the anime backlog tracker.
+
+Produce:
+- Resource model definitions
+- Request/response schemas
+- Query parameters
+- Pagination strategy where needed
+- Validation rules
+- Error schema
+- Example payloads
+- OpenAPI-style endpoint list
+
+Required endpoints:
+- GET /health
+- GET /anime/search?q=
+- GET /anime/pre-2010
+- GET /anime/years
+- GET /anime?year=&season=
+- GET /anime/{id}
+- POST /anime
+- PATCH /anime/{id}
+- DELETE /anime/{id}
+- POST /anime/{id}/status
+- POST /anime/{id}/downloaded
+- POST /import/csv
+- GET /export/csv
+- GET /stats
+- GET /random-pick?scope=
+- GET /shikimori?query=
+- POST /cache/purge if admin-only is justified, otherwise omit
+
+Rules:
+- Keep the API simple and versionable
+- Prefer consistent JSON envelopes only if they add value; otherwise use lean responses
+- Explain a recommended uniqueness rule for imports
+- Explain how the frontend should cache and invalidate each endpoint
+
+---
+
+Stage 5 — database + migration prompt
+
+Design the relational schema and migrations for the anime backlog web app.
+
+Requirements:
+- PostgreSQL-first design
+- Support local SQLite dev only if practical
+- Anime table
+- Shikimori cache table
+- Normalized constraints and indexes
+- Safe migration path from the old SQLite desktop schema if I later import legacy CSV dumps
+
+Need:
+1. SQLModel or SQLAlchemy models
+2. Alembic initial migration
+3. Suggested follow-up migrations
+4. Index rationale
+5. Uniqueness strategy
+6. Sample SQL queries for:
+   - years list
+   - pre-2010 list
+   - entries by season
+   - stats by type
+   - random unwatched pick
+7. Data retention strategy for cache expiration
+
+Important:
+- Do not persist HTML-escaped text
+- Prefer check constraints or enum-like safety where appropriate
+- Handle season “other” cleanly
+- Explain tradeoffs between using empty string vs null for season
+
+---
+
+Stage 6 — Docker + deployment prompt
+
+Containerize this project for self-hosting.
+
+Target:
+- One monorepo with:
+  - frontend (Next.js)
+  - backend (FastAPI)
+  - db (PostgreSQL)
+- Docker compose for local and small-server deployment
+- Production-friendly images
+- Good defaults for security and size
+
+Create:
+- docker-compose.yml
+- docker-compose.override.yml if useful
+- frontend Dockerfile
+- backend Dockerfile
+- .dockerignore files
+- env examples
+- makefile or justfile for common commands
+- healthchecks
+- startup ordering
+- migration job or entrypoint
+- persistent volumes
+- reverse proxy recommendation only if truly needed
+
+Requirements:
+- Multi-stage Docker builds
+- Non-root runtime user
+- Small final images
+- Reproducible installs
+- Clear separation of build-time and runtime config
+- Support self-hosting on a single VPS
+- Include notes for backup/restore of PostgreSQL
+- Include image tagging strategy for CI/CD
+
+Also:
+- Give me exact commands to build and run
+- Explain how to run local dev versus production mode
+- Explain which secrets must be injected
+
+---
+
+Stage 7 — Shikimori integration prompt
+
+Implement the Shikimori integration for this anime tracker.
+
+Behavior to reproduce:
+- User clicks an info action on an anime
+- Backend searches Shikimori by anime name
+- Returns a normalized payload with fields such as title(s), score, episodes, aired date, studios, genres, description
+- Cache successful lookups in DB with TTL
+- Frontend displays the result in a modal or side panel
+
+Requirements:
+- Backend should isolate third-party API calls behind a service
+- Add timeout, retry policy, and graceful degradation
+- Cache key normalization
+- Avoid duplicate concurrent fetches where practical
+- Preserve observability with structured logs
+- Sanitize rendered HTML safely; prefer plain text rendering unless trusted rich text is necessary
+- Add tests with mocked upstream responses
+
+Deliver:
+- API design
+- Service implementation
+- Frontend modal implementation
+- Cache invalidation strategy
+- Failure states and UX copy
+
+---
+
+Stage 8 — import/export  
+
+Implement robust CSV import/export for the anime backlog app.
+
+The legacy desktop app accepted rows in multiple shapes:
+- 7 columns: no id, no downloaded
+- 8 columns: either includes id or downloaded
+- 9 columns: includes id and downloaded
+
+Build a safer web version that:
+- Imports CSV through the backend
+- Validates rows and reports partial failures clearly
+- Supports dry-run preview before commit
+- Normalizes fields
+- Detects duplicates
+- Preserves downloaded/status values
+- Exports a canonical CSV format
+
+Need:
+- Canonical export header
+- Import parser with row-level validation results
+- Duplicate-handling strategy
+- UI for previewing import results
+- Tests for malformed rows and legacy formats
+- Security notes for CSV handling
+
+---
+
+Stage 9 — testing + quality gate prompt
+
+Add a serious quality bar to this project.
+
+Set up:
+- Backend unit and API tests with pytest
+- Frontend component tests
+- End-to-end tests for critical flows
+- Linting
+- Formatting
+- Type checking
+- Pre-commit hooks
+- CI pipeline
+
+Critical test scenarios:
+- Create/edit/delete anime
+- Search/filter
+- Pre-2010 vs year/season grouping
+- Status transitions
+- Downloaded toggle
+- Random pick only among unwatched entries in current scope
+- Stats correctness
+- CSV import/export
+- Shikimori lookup with cache hits and misses
+- XSS-safe rendering of comments and names
+- Invalid URLs rejected
+- Persistence of user preferences
+
+Output:
+- Full config files
+- Test files
+- CI workflow
+- Definition of done checklist
+
+---
+
+Stage 10 — final polishing/refactor prompt
+
+Review the whole generated codebase as a principal engineer and refactor it.
+
+Tasks:
+- Remove duplication
+- Tighten types
+- Improve naming
+- Improve accessibility
+- Improve Docker image size and runtime security
+- Improve query invalidation and caching strategy
+- Verify server/client component boundaries
+- Verify forms and validation
+- Verify error handling and empty/loading states
+- Verify no raw user HTML is dangerously rendered
+- Verify comments with URLs are rendered safely
+- Verify production environment variables are documented
+- Verify migrations and startup flow are reliable
+
+Then produce:
+1. A list of issues found
+2. The refactored code
+3. A short rationale for each meaningful improvement
