@@ -10,7 +10,7 @@ This project is split into three main services:
 - `backend`: FastAPI application with SQLAlchemy, Alembic, and business logic
 - `db`: PostgreSQL 17 database
 
-The default production-style stack runs through Docker Compose. A development overlay is also included for bind-mounted local development.
+The main deployment path is Docker Compose with prebuilt Docker Hub images. A development overlay is also included for bind-mounted local development and local image builds.
 
 ## Features
 
@@ -89,10 +89,11 @@ Default ports:
 - backend API: `43968`
 - PostgreSQL: `5432`
 
-### 2. Build and run
+### 2. Pull and run
 
 ```sh
-docker compose up --build -d
+docker compose pull
+docker compose up -d
 ```
 
 Open:
@@ -104,7 +105,7 @@ Open:
 
 ### Start dev stack
 
-This uses bind mounts and development commands:
+This uses bind mounts and local builds:
 
 ```sh
 docker compose -f compose.yaml -f compose.dev.yaml up --build
@@ -191,6 +192,22 @@ Current CI gates:
 - frontend Vitest suite
 - frontend production build
 
+## Deployment
+
+Production deployment is image-first. The intended flow is:
+
+1. publish updated images to Docker Hub
+2. pull those images on the target machine
+3. recreate the stack with Docker Compose
+
+Default image references in `compose.yaml`:
+
+- `skeirs/anime-backlog-db-1`
+- `skeirs/anime-backlog-api`
+- `skeirs/anime-backlog-frontend`
+
+For VPS deployment, use the root `compose.yaml` directly and follow [DEPLOY_VPS.md](/home/bernd/Documents/programs/python/anime-tracker-web/DEPLOY_VPS.md).
+
 ## Configuration
 
 Top-level `.env` controls the Docker Compose stack.
@@ -198,6 +215,9 @@ Top-level `.env` controls the Docker Compose stack.
 Important variables:
 
 - `COMPOSE_PROJECT_NAME`
+- `DB_IMAGE`
+- `API_IMAGE`
+- `FRONTEND_IMAGE`
 - `POSTGRES_DB`
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
@@ -271,10 +291,10 @@ Quick setup steps:
 
 1. Set the proxy URL in `.env`
 2. If you also run the backend outside Docker, mirror it in `backend/.env`
-3. Rebuild and restart the stack:
+3. Recreate the stack so the containers pick up the new environment:
 
 ```sh
-docker compose up --build -d
+docker compose up -d
 ```
 
 ## Database and Migrations
@@ -319,6 +339,7 @@ Be careful: restore writes into the current configured database.
 ```sh
 make help
 make build
+make pull
 make up
 make down
 make restart

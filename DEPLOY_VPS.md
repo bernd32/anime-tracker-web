@@ -1,6 +1,6 @@
 # Deploying To A Linux VPS
 
-This guide describes a safe, simple production deployment for this project on a Linux VPS.
+This guide describes the recommended production deployment for this project on a Linux VPS.
 
 It assumes:
 
@@ -74,6 +74,8 @@ sudo nginx -v
 sudo certbot --version
 ```
 
+The main deployment approach is to pull prebuilt images from Docker Hub and run them with Docker Compose on the VPS.
+
 ## 4. Prepare the deployment directory
 
 Use a predictable location:
@@ -84,43 +86,24 @@ sudo chown "$USER":"$USER" /opt/anime-tracker-web
 cd /opt/anime-tracker-web
 ```
 
-For a Docker-based VPS deployment, prefer deploying prebuilt container images instead of copying the full source tree to the server.
+For this project, deploy prebuilt Docker Hub images instead of copying the full source tree to the server.
 
 Create a minimal deployment directory that contains only the files the VPS needs:
 
 - `compose.yaml`
-- `compose.prod.yaml`
 - `.env`
 
 If you use a custom Nginx config on the VPS, that stays under `/etc/nginx`, not in this app directory.
 
-## 5. Build and publish container images
+## 5. Docker Hub images
 
-Build images in CI or on a trusted build machine, then push them to a registry such as Docker Hub or GitHub Container Registry.
+Use the published Docker Hub images as the default deployment source:
 
-Recommended image tags:
+- `skeirs/anime-backlog-db-1`
+- `skeirs/anime-backlog-api`
+- `skeirs/anime-backlog-frontend-1`
 
-- `ghcr.io/your-user/anime-tracker-api:latest`
-- `ghcr.io/your-user/anime-tracker-frontend:latest`
-
-The `db` service should keep using the official `postgres:17-alpine` image.
-
-To support this deployment model cleanly, the Compose file used on the VPS should reference `image:` for `api` and `frontend` instead of `build:`.
-
-Example production override file `compose.prod.yaml`:
-
-```yaml
-services:
-  api:
-    image: ghcr.io/your-user/anime-tracker-api:latest
-    build: null
-
-  frontend:
-    image: ghcr.io/your-user/anime-tracker-frontend:latest
-    build: null
-```
-
-Place that file on the VPS next to `compose.yaml`.
+`compose.yaml` is already configured to pull these images by default. If you ever need to change registries or tags, override `DB_IMAGE`, `API_IMAGE`, or `FRONTEND_IMAGE` in `.env`.
 
 ## 6. Create the production `.env`
 
@@ -134,6 +117,10 @@ Edit `.env` and set at minimum:
 
 ```dotenv
 COMPOSE_PROJECT_NAME=anime-backlog
+
+DB_IMAGE=skeirs/anime-backlog-db-1
+API_IMAGE=skeirs/anime-backlog-api
+FRONTEND_IMAGE=skeirs/anime-backlog-frontend
 
 POSTGRES_DB=anime_backlog
 POSTGRES_USER=anime
@@ -245,24 +232,18 @@ sudo certbot renew --dry-run
 
 ## 10. Start the application
 
-Log in to your container registry first if the images are private:
+Pull and start the stack from the deployment directory:
 
 ```sh
-docker login ghcr.io
-```
-
-Then start the stack from the deployment directory:
-
-```sh
-docker compose -f compose.yaml -f compose.prod.yaml pull
-docker compose -f compose.yaml -f compose.prod.yaml up -d
+docker compose pull
+docker compose up -d
 ```
 
 Check status:
 
 ```sh
-docker compose -f compose.yaml -f compose.prod.yaml ps
-docker compose -f compose.yaml -f compose.prod.yaml logs -f --tail=200
+docker compose ps
+docker compose logs -f --tail=200
 ```
 
 The backend startup flow already runs migrations on startup before serving traffic.
@@ -298,9 +279,9 @@ After publishing new container images:
 
 ```sh
 cd /opt/anime-tracker-web
-docker compose -f compose.yaml -f compose.prod.yaml pull
-docker compose -f compose.yaml -f compose.prod.yaml up -d
-docker compose -f compose.yaml -f compose.prod.yaml ps
+docker compose pull
+docker compose up -d
+docker compose ps
 ```
 
 If you want to clean up old images afterward:
@@ -315,7 +296,7 @@ Create backups regularly. For a minimal image-based deployment, use `docker exec
 
 ```sh
 mkdir -p /opt/anime-tracker-web/backups
-docker compose -f compose.yaml -f compose.prod.yaml exec -T db \
+docker compose exec -T db \
   pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip \
   > /opt/anime-tracker-web/backups/postgres-$(date +%Y%m%d-%H%M%S).sql.gz
 ```
@@ -326,7 +307,7 @@ To restore:
 
 ```sh
 gzip -dc /opt/anime-tracker-web/backups/postgres-YYYYMMDD-HHMMSS.sql.gz | \
-docker compose -f compose.yaml -f compose.prod.yaml exec -T db \
+docker compose exec -T db \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 ```
 
@@ -342,17 +323,17 @@ Best practice:
 Useful commands:
 
 ```sh
-docker compose -f compose.yaml -f compose.prod.yaml ps
-docker compose -f compose.yaml -f compose.prod.yaml logs -f --tail=200
-docker compose -f compose.yaml -f compose.prod.yaml restart
+docker compose ps
+docker compose logs -f --tail=200
+docker compose restart
 ```
 
 Shell access inside containers:
 
 ```sh
-docker compose -f compose.yaml -f compose.prod.yaml exec api sh
-docker compose -f compose.yaml -f compose.prod.yaml exec db sh
-docker compose -f compose.yaml -f compose.prod.yaml exec frontend sh
+docker compose exec api sh
+docker compose exec db sh
+docker compose exec frontend sh
 ```
 
 ## 15. Security checklist
