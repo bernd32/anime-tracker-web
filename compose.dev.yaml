@@ -40,7 +40,7 @@ services:
         NODE_VERSION: "22"
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:43968/api/v1}
+      API_PROXY_TARGET: ${API_PROXY_TARGET:-http://api:43968/api/v1}
       HOSTNAME: 0.0.0.0
       PORT: 20773
       WATCHPACK_POLLING: "true"

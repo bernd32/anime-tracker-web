@@ -10,7 +10,7 @@ This project is split into three main services:
 - `backend`: FastAPI application with SQLAlchemy, Alembic, and business logic
 - `db`: PostgreSQL 17 database
 
-The main deployment path is Docker Compose with prebuilt Docker Hub images. A development overlay is also included for bind-mounted local development and local image builds.
+The main deployment path is Docker Compose with prebuilt Docker Hub images for the app services and the official PostgreSQL image for the database. A development overlay is also included for bind-mounted local development and local image builds.
 
 ## Features
 
@@ -73,7 +73,7 @@ cp frontend/.env.example frontend/.env
 Review at minimum:
 
 - `POSTGRES_PASSWORD`
-- `NEXT_PUBLIC_API_BASE_URL`
+- `API_PROXY_TARGET`
 - `CORS_ALLOW_ORIGINS`
 - `AUTH_OWNER_USERNAME`
 - `AUTH_OWNER_PASSWORD`
@@ -117,6 +117,8 @@ Or with `make`:
 make dev
 ```
 
+Use `make build && make up` only when you want to build and run the runtime images locally without bind mounts.
+
 Stop it with:
 
 ```sh
@@ -149,7 +151,7 @@ npm ci
 npm run dev -- --hostname 0.0.0.0 --port 20773
 ```
 
-If you run frontend locally against Docker backend, make sure `NEXT_PUBLIC_API_BASE_URL` points to the correct host/API URL.
+The browser always talks to same-origin `/api/v1`. If you run the frontend outside Docker Compose, set `API_PROXY_TARGET` so the frontend server can reach the backend.
 
 ## Testing
 
@@ -202,9 +204,9 @@ Production deployment is image-first. The intended flow is:
 
 Default image references in `compose.yaml`:
 
-- `skeirs/anime-backlog-db-1`
-- `skeirs/anime-backlog-api`
-- `skeirs/anime-backlog-frontend`
+- `postgres:17-alpine`
+- `skeirs/anime-backlog-api:2`
+- `skeirs/anime-backlog-frontend:2`
 
 For VPS deployment, use the root `compose.yaml` directly and follow [DEPLOY_VPS.md](/home/bernd/Documents/programs/python/anime-tracker-web/DEPLOY_VPS.md).
 
@@ -224,7 +226,7 @@ Important variables:
 - `POSTGRES_PORT`
 - `API_PORT`
 - `FRONTEND_PORT`
-- `NEXT_PUBLIC_API_BASE_URL`
+- `API_PROXY_TARGET`
 - `APP_ENV`
 - `APP_DEBUG`
 - `LOG_LEVEL`
@@ -250,6 +252,8 @@ The application uses a single owner login:
 - only the signed-in owner can create, edit, delete, import, or change preferences
 - production startup is blocked if `AUTH_OWNER_USERNAME`, `AUTH_OWNER_PASSWORD`, or `AUTH_SESSION_SECRET` are left on insecure defaults
 - repeated failed owner logins are throttled using the `AUTH_LOGIN_*` settings
+
+The frontend proxies browser requests through same-origin `/api/v1`, so one frontend image can run on any host. The frontend server reaches the backend using `API_PROXY_TARGET`.
 
 `CORS_ALLOW_ORIGINS` is a JSON array string, for example:
 

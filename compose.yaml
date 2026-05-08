@@ -2,7 +2,7 @@ name: ${COMPOSE_PROJECT_NAME:-anime-backlog}
 
 services:
   db:
-    image: ${DB_IMAGE:-skeirs/anime-backlog-db-1}
+    image: ${DB_IMAGE:-postgres:17-alpine}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?required}
@@ -27,6 +27,12 @@ services:
 
   api:
     image: ${API_IMAGE:-skeirs/anime-backlog-api}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        PYTHON_VERSION: "3.14"
     restart: unless-stopped
     environment:
       APP_ENV: ${APP_ENV:-production}
@@ -64,10 +70,17 @@ services:
       start_period: 20s
 
   frontend:
-    image: ${FRONTEND_IMAGE:-skeirs/anime-backlog-frontend-1}
+    image: ${FRONTEND_IMAGE:-skeirs/anime-backlog-frontend}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        NODE_VERSION: "22"
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      API_PROXY_TARGET: ${API_PROXY_TARGET:-http://api:43968/api/v1}
       PORT: 20773
       HOSTNAME: 0.0.0.0
     depends_on:

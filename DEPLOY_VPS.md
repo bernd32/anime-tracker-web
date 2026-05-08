@@ -95,13 +95,16 @@ Create a minimal deployment directory that contains only the files the VPS needs
 
 If you use a custom Nginx config on the VPS, that stays under `/etc/nginx`, not in this app directory.
 
-## 5. Docker Hub images
+## 5. Container images
 
-Use the published Docker Hub images as the default deployment source:
+Use the published Docker Hub images for the app services:
 
-- `skeirs/anime-backlog-db-1`
-- `skeirs/anime-backlog-api`
-- `skeirs/anime-backlog-frontend-1`
+- `skeirs/anime-backlog-api:2`
+- `skeirs/anime-backlog-frontend:2`
+
+For the database, use the official PostgreSQL image:
+
+- `postgres:17-alpine`
 
 `compose.yaml` is already configured to pull these images by default. If you ever need to change registries or tags, override `DB_IMAGE`, `API_IMAGE`, or `FRONTEND_IMAGE` in `.env`.
 
@@ -118,7 +121,7 @@ Edit `.env` and set at minimum:
 ```dotenv
 COMPOSE_PROJECT_NAME=anime-backlog
 
-DB_IMAGE=skeirs/anime-backlog-db-1
+DB_IMAGE=postgres:17-alpine
 API_IMAGE=skeirs/anime-backlog-api
 FRONTEND_IMAGE=skeirs/anime-backlog-frontend
 
@@ -130,7 +133,7 @@ POSTGRES_PORT=127.0.0.1:5432
 API_PORT=127.0.0.1:43968
 FRONTEND_PORT=127.0.0.1:20773
 
-NEXT_PUBLIC_API_BASE_URL=https://anime.example.com/api/v1
+API_PROXY_TARGET=http://api:43968/api/v1
 
 APP_ENV=production
 APP_DEBUG=false
@@ -157,7 +160,7 @@ Notes:
 
 - Use a long random value for `POSTGRES_PASSWORD`.
 - Bind all published ports to `127.0.0.1`, not `0.0.0.0`.
-- `NEXT_PUBLIC_API_BASE_URL` must use your public HTTPS domain.
+- Keep `API_PROXY_TARGET` pointed at the backend service reachable from the frontend container.
 - `CORS_ALLOW_ORIGINS` must be a JSON array string.
 - Set strong values for `AUTH_OWNER_PASSWORD` and `AUTH_SESSION_SECRET`.
 - Keep `AUTH_LOGIN_*` at sane values so repeated failed logins are throttled.
@@ -342,7 +345,7 @@ Use this checklist for a sane baseline:
 
 - Keep `POSTGRES_PORT`, `API_PORT`, and `FRONTEND_PORT` bound to `127.0.0.1`.
 - Expose only `22`, `80`, and `443` from the VPS.
-- Use HTTPS in `NEXT_PUBLIC_API_BASE_URL`.
+- Route browser traffic through the same frontend origin and keep the frontend proxy target internal.
 - Set `CORS_ALLOW_ORIGINS` to your real domain only.
 - Use a strong PostgreSQL password.
 - Prefer immutable image tags or a controlled `latest` publishing workflow.
@@ -361,7 +364,7 @@ You can expose the frontend directly and keep the API local:
 FRONTEND_PORT=20773
 API_PORT=127.0.0.1:43968
 POSTGRES_PORT=127.0.0.1:5432
-NEXT_PUBLIC_API_BASE_URL=https://anime.example.com/api/v1
+API_PROXY_TARGET=http://api:43968/api/v1
 ```
 
 You would still need some HTTPS-capable reverse proxy in front of the API for browsers, so in practice Nginx is the simpler and safer option.

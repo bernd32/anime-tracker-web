@@ -6,7 +6,7 @@ FROM node:${NODE_VERSION}-alpine AS base
 WORKDIR /app
 
 FROM base AS dev
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat wget
 COPY package*.json ./
 RUN npm ci
 COPY . .
@@ -22,11 +22,9 @@ COPY package*.json ./
 RUN npm ci
 
 FROM base AS builder
-ARG NEXT_PUBLIC_API_BASE_URL
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
-    NPM_CONFIG_UPDATE_NOTIFIER=false \
-    NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+    NPM_CONFIG_UPDATE_NOTIFIER=false
 RUN apk add --no-cache libc6-compat
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

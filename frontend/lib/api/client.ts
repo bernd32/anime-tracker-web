@@ -11,14 +11,14 @@ import type {
   ApiError,
 } from '@/lib/api/types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:43968/api/v1';
+const API_BASE = '/api/v1';
 const CSRF_COOKIE_NAME = 'anime_tracker_csrf';
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 type RequestOptions = RequestInit & { query?: Record<string, string | number | boolean | undefined | null> };
 
 function buildUrl(path: string, query?: RequestOptions['query']) {
-  const url = new URL(`${API_BASE}${path}`);
+  const url = new URL(`${API_BASE}${path}`, 'http://localhost');
   if (query) {
     Object.entries(query).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -26,7 +26,7 @@ function buildUrl(path: string, query?: RequestOptions['query']) {
       }
     });
   }
-  return url.toString();
+  return `${url.pathname}${url.search}`;
 }
 
 export class ApiClientError extends Error {

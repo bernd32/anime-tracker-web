@@ -5,7 +5,7 @@ COMPOSE := docker compose
 
 help:
 	@printf "%s\n" \
-	"make build      - build local development images" \
+	"make build      - build local runtime images for make up" \
 	"make pull       - pull deployment images from Docker Hub" \
 	"make up         - start the image-based stack" \
 	"make down       - stop stack" \
@@ -24,7 +24,7 @@ help:
 	"make ci         - run the local quality gate set"
 
 build:
-	$(COMPOSE) -f compose.yaml -f compose.dev.yaml build
+	$(COMPOSE) build
 
 up:
 	$(COMPOSE) up -d
