@@ -15,6 +15,7 @@ help:
 	"make dev        - start development stack with bind mounts" \
 	"make dev-down   - stop development stack" \
 	"make backup     - create a PostgreSQL backup in ./backups" \
+	"make backup-k8s - create a PostgreSQL backup in ./backups if using Kubernetes" \
 	"make restore FILE=./backups/file.sql.gz - restore a PostgreSQL backup" \
 	"make db-shell   - open psql shell in db container" \
 	"make api-shell  - open shell in api container" \
@@ -53,6 +54,9 @@ pull:
 
 backup:
 	./scripts/backup-postgres.sh
+
+backup-k8s:
+	./scripts/backup-postgres.sh k8s
 
 restore:
 	test -n "$(FILE)" || (echo "Usage: make restore FILE=./backups/backup.sql.gz" && exit 1)
