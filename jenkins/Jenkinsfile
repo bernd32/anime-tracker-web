@@ -117,11 +117,32 @@ pipeline {
                 '''
             }
         }
+
+        stage('Deploy') {
+            steps {
+                withCredentials([file(credentialsId: 'anime-backlog-env', variable: 'ENV_FILE')]) {
+                    sh '''
+                        set -eu
+
+                        export API_IMAGE="anime-backlog-api:${BUILD_NUMBER}"
+                        export FRONTEND_IMAGE="anime-backlog-frontend:${BUILD_NUMBER}"
+
+                        docker compose --env-file "$ENV_FILE" up -d \
+                            --remove-orphans \
+                            --wait --wait-timeout 90
+                    '''
+                }
+            }
+        }
     }
 
     post {
         always {
-            deleteDir()
+            // cleanWs()
         }
+        
+        success {
+            sh 'docker image prune -f'
+        }    
     }
 }
