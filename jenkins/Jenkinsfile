@@ -1,10 +1,10 @@
 pipeline {
-    
     agent any
 
     options {
         buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
         disableConcurrentBuilds(abortPrevious: true)
+        skipDefaultCheckout(true)
         timeout(time: 45, unit: 'MINUTES')
         timestamps()
     }
@@ -30,19 +30,21 @@ pipeline {
         stage('Quality Gates') {
             parallel {
                 stage('Backend') {
+                    agent {
+                        docker {
+                            image 'python:3.14-slim-bookworm'
+                            reuseNode true
+                        }
+                    }
                     steps {
                         dir('backend') {
                             sh '''
                                 set -eu
+                                trap 'chmod -R a+rwX . || true' EXIT
                                 mkdir -p reports
 
-                                if command -v python3.14 >/dev/null 2>&1; then
-                                    PYTHON_BIN=python3.14
-                                else
-                                    PYTHON_BIN=python3
-                                fi
-
-                                "$PYTHON_BIN" -m venv .venv
+                                python --version
+                                python -m venv .venv
                                 . .venv/bin/activate
                                 python -m pip install --upgrade pip
                                 python -m pip install -e ".[dev]"
@@ -59,12 +61,22 @@ pipeline {
                 }
 
                 stage('Frontend') {
+                    agent {
+                        docker {
+                            image 'node:22-alpine'
+                            reuseNode true
+                        }
+                    }
                     steps {
                         dir('frontend') {
                             sh '''
                                 set -eu
+                                trap 'chmod -R a+rwX . || true' EXIT
                                 mkdir -p reports
 
+                                apk add --no-cache libc6-compat
+                                node --version
+                                npm --version
                                 npm ci --no-audit
                                 npm run typecheck
                                 npm test -- --reporter=default --reporter=junit --outputFile=reports/vitest.xml
