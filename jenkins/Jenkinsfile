@@ -1,0 +1,116 @@
+pipeline {
+    agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
+        disableConcurrentBuilds(abortPrevious: true)
+        timeout(time: 45, unit: 'MINUTES')
+        timestamps()
+    }
+
+    environment {
+        DOCKER_BUILDKIT = '1'
+        NEXT_PUBLIC_API_BASE_URL = 'http://localhost:43968/api/v1'
+        NEXT_TELEMETRY_DISABLED = '1'
+        NPM_CONFIG_UPDATE_NOTIFIER = 'false'
+        PIP_DISABLE_PIP_VERSION_CHECK = '1'
+        PIP_NO_CACHE_DIR = '1'
+        PYTHON_VERSION = '3.14'
+        NODE_VERSION = '22'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Quality Gates') {
+            parallel {
+                stage('Backend') {
+                    steps {
+                        dir('backend') {
+                            sh '''
+                                set -eu
+                                mkdir -p reports
+
+                                if command -v python3.14 >/dev/null 2>&1; then
+                                    PYTHON_BIN=python3.14
+                                else
+                                    PYTHON_BIN=python3
+                                fi
+
+                                "$PYTHON_BIN" -m venv .venv
+                                . .venv/bin/activate
+                                python -m pip install --upgrade pip
+                                python -m pip install -e ".[dev]"
+                                ruff check .
+                                pytest -q --junitxml=reports/pytest.xml
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            junit allowEmptyResults: true, testResults: 'backend/reports/pytest.xml'
+                        }
+                    }
+                }
+
+                stage('Frontend') {
+                    steps {
+                        dir('frontend') {
+                            sh '''
+                                set -eu
+                                mkdir -p reports
+
+                                npm ci --no-audit
+                                npm run typecheck
+                                npm test -- --reporter=default --reporter=junit --outputFile=reports/vitest.xml
+                                npm run build
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            junit allowEmptyResults: true, testResults: 'frontend/reports/vitest.xml'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Container Image Build') {
+            steps {
+                sh '''
+                    set -eu
+
+                    if ! command -v docker >/dev/null 2>&1; then
+                        echo "Docker CLI is required for the Container Image Build stage."
+                        exit 1
+                    fi
+
+                    docker build \
+                        --pull \
+                        --target runtime \
+                        --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
+                        --tag "anime-backlog-api:${BUILD_NUMBER}" \
+                        backend
+
+                    docker build \
+                        --pull \
+                        --target runtime \
+                        --build-arg NODE_VERSION="${NODE_VERSION}" \
+                        --tag "anime-backlog-frontend:${BUILD_NUMBER}" \
+                        frontend
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            deleteDir()
+        }
+    }
+}
