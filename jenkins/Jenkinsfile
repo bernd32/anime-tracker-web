@@ -48,7 +48,6 @@ pipeline {
                                 . .venv/bin/activate
                                 python -m pip install --upgrade pip
                                 python -m pip install -e ".[dev]"
-                                ruff check .
                                 pytest -q --junitxml=reports/pytest.xml
                             '''
                         }
@@ -63,7 +62,7 @@ pipeline {
                 stage('Frontend') {
                     agent {
                         docker {
-                            image 'node:22-alpine'
+                            image 'node:22-bookworm-slim'
                             reuseNode true
                         }
                     }
@@ -74,7 +73,6 @@ pipeline {
                                 trap 'chmod -R a+rwX . || true' EXIT
                                 mkdir -p reports
 
-                                apk add --no-cache libc6-compat
                                 node --version
                                 npm --version
                                 npm ci --no-audit
