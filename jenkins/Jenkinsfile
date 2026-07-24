@@ -23,6 +23,19 @@ pipeline {
 
     stages {
 
+        stage('SSH test') {
+            steps {
+                sshagent(credentials: ['deploy-key-test']) {
+                    sh '''
+                        ssh \
+                        -o StrictHostKeyChecking=no \
+                        admin@192.168.88.80 \
+                        hostname
+                    '''
+                }
+            }
+        }        
+
         stage('Checkout') {
             steps {
                 checkout scm
