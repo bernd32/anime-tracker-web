@@ -137,9 +137,6 @@ pipeline {
     }
 
     post {
-        // always {
-        //     cleanWs()
-        // }
 
         success {
             sh 'docker image prune -f'
