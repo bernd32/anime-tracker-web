@@ -53,10 +53,18 @@ function copyResponseHeaders(upstream: Response) {
   const headers = new Headers();
 
   upstream.headers.forEach((value, key) => {
-    if (!HOP_BY_HOP_RESPONSE_HEADERS.has(key.toLowerCase())) {
+    const normalizedKey = key.toLowerCase();
+    if (!HOP_BY_HOP_RESPONSE_HEADERS.has(normalizedKey) && normalizedKey !== 'set-cookie') {
       headers.set(key, value);
     }
   });
+
+  // A successful login sends separate session and CSRF cookies. `forEach` exposes
+  // them as one combined value in Node's Fetch implementation, which browsers do
+  // not interpret as two cookies. Forward each Set-Cookie field independently.
+  for (const cookie of upstream.headers.getSetCookie()) {
+    headers.append('set-cookie', cookie);
+  }
 
   return headers;
 }
