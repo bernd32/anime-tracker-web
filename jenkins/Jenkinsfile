@@ -23,16 +23,6 @@ pipeline {
 
     stages {
 
-        stage('Trust remote host') {
-            steps {
-                sh '''
-                    mkdir -p ~/.ssh
-                    chmod 700 ~/.ssh
-                    ssh-keyscan -H 192.168.88.80 >> ~/.ssh/known_hosts
-                '''
-            }
-        }
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -106,28 +96,27 @@ pipeline {
         stage('Container Image Build') {
             steps {
                 sshagent(credentials: ['deploy-key-test']) {
-                    sh '''
-                        set -eu
+                    withEnv([
+                        'DOCKER_SSH_COMMAND=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+                    ]) {
+                        sh '''
+                            set -eu
 
-                        if ! command -v docker >/dev/null 2>&1; then
-                            echo "Docker CLI is required for the Container Image Build stage."
-                            exit 1
-                        fi
+                            docker build \
+                                --pull \
+                                --target runtime \
+                                --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
+                                --tag "anime-backlog-api:${BUILD_NUMBER}" \
+                                backend
 
-                        docker build \
-                            --pull \
-                            --target runtime \
-                            --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
-                            --tag "anime-backlog-api:${BUILD_NUMBER}" \
-                            backend
-
-                        docker build \
-                            --pull \
-                            --target runtime \
-                            --build-arg NODE_VERSION="${NODE_VERSION}" \
-                            --tag "anime-backlog-frontend:${BUILD_NUMBER}" \
-                            frontend
-                    '''
+                            docker build \
+                                --pull \
+                                --target runtime \
+                                --build-arg NODE_VERSION="${NODE_VERSION}" \
+                                --tag "anime-backlog-frontend:${BUILD_NUMBER}" \
+                                frontend
+                        '''
+                    }
                 }
             }
         }
@@ -135,17 +124,26 @@ pipeline {
         stage('Deploy') {
             steps {
                 sshagent(credentials: ['deploy-key-test']) {
-                    withCredentials([file(credentialsId: 'anime-backlog-env', variable: 'ENV_FILE')]) {
-                        sh '''
-                            set -eu
+                    withEnv([
+                        'DOCKER_SSH_COMMAND=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+                    ]) {
+                        withCredentials([
+                            file(credentialsId: 'anime-backlog-env', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                set -eu
 
-                            export API_IMAGE="anime-backlog-api:${BUILD_NUMBER}"
-                            export FRONTEND_IMAGE="anime-backlog-frontend:${BUILD_NUMBER}"
+                                export API_IMAGE="anime-backlog-api:${BUILD_NUMBER}"
+                                export FRONTEND_IMAGE="anime-backlog-frontend:${BUILD_NUMBER}"
 
-                            docker compose --env-file "$ENV_FILE" up -d \
-                                --remove-orphans \
-                                --wait --wait-timeout 90
-                        '''
+                                docker compose \
+                                    --env-file "$ENV_FILE" \
+                                    up -d \
+                                    --remove-orphans \
+                                    --wait \
+                                    --wait-timeout 90
+                            '''
+                        }
                     }
                 }
             }
@@ -155,7 +153,11 @@ pipeline {
     post {
         success {
             sshagent(credentials: ['deploy-key-test']) {
-                sh 'docker image prune -f'
+                withEnv([
+                    'DOCKER_SSH_COMMAND=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+                ]) {
+                    sh 'docker image prune -f'
+                }
             }
         }
     }
