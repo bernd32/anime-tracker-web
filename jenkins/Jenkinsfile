@@ -22,6 +22,17 @@ pipeline {
     }
 
     stages {
+
+        stage('Trust remote host') {
+            steps {
+                sh '''
+                    mkdir -p ~/.ssh
+                    chmod 700 ~/.ssh
+                    ssh-keyscan -H 192.168.88.80 >> ~/.ssh/known_hosts
+                '''
+            }
+        }
+
         stage('Checkout') {
             steps {
                 checkout scm
