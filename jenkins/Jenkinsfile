@@ -18,6 +18,7 @@ pipeline {
         PIP_NO_CACHE_DIR = '1'
         PYTHON_VERSION = '3.14'
         NODE_VERSION = '22'
+        DOCKER_HOST = 'ssh://admin@192.168.88.80'
     }
 
     stages {
@@ -93,53 +94,58 @@ pipeline {
 
         stage('Container Image Build') {
             steps {
-                sh '''
-                    set -eu
+                sshagent(credentials: ['deploy-key-test']) {
+                    sh '''
+                        set -eu
 
-                    if ! command -v docker >/dev/null 2>&1; then
-                        echo "Docker CLI is required for the Container Image Build stage."
-                        exit 1
-                    fi
+                        if ! command -v docker >/dev/null 2>&1; then
+                            echo "Docker CLI is required for the Container Image Build stage."
+                            exit 1
+                        fi
 
-                    docker build \
-                        --pull \
-                        --target runtime \
-                        --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
-                        --tag "anime-backlog-api:${BUILD_NUMBER}" \
-                        backend
+                        docker build \
+                            --pull \
+                            --target runtime \
+                            --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
+                            --tag "anime-backlog-api:${BUILD_NUMBER}" \
+                            backend
 
-                    docker build \
-                        --pull \
-                        --target runtime \
-                        --build-arg NODE_VERSION="${NODE_VERSION}" \
-                        --tag "anime-backlog-frontend:${BUILD_NUMBER}" \
-                        frontend
-                '''
+                        docker build \
+                            --pull \
+                            --target runtime \
+                            --build-arg NODE_VERSION="${NODE_VERSION}" \
+                            --tag "anime-backlog-frontend:${BUILD_NUMBER}" \
+                            frontend
+                    '''
+                }
             }
         }
 
         stage('Deploy') {
             steps {
-                withCredentials([file(credentialsId: 'anime-backlog-env', variable: 'ENV_FILE')]) {
-                    sh '''
-                        set -eu
+                sshagent(credentials: ['deploy-key-test']) {
+                    withCredentials([file(credentialsId: 'anime-backlog-env', variable: 'ENV_FILE')]) {
+                        sh '''
+                            set -eu
 
-                        export API_IMAGE="anime-backlog-api:${BUILD_NUMBER}"
-                        export FRONTEND_IMAGE="anime-backlog-frontend:${BUILD_NUMBER}"
+                            export API_IMAGE="anime-backlog-api:${BUILD_NUMBER}"
+                            export FRONTEND_IMAGE="anime-backlog-frontend:${BUILD_NUMBER}"
 
-                        docker compose --env-file "$ENV_FILE" up -d \
-                            --remove-orphans \
-                            --wait --wait-timeout 90
-                    '''
+                            docker compose --env-file "$ENV_FILE" up -d \
+                                --remove-orphans \
+                                --wait --wait-timeout 90
+                        '''
+                    }
                 }
             }
         }
     }
 
     post {
-
         success {
-            sh 'docker image prune -f'
-        }    
+            sshagent(credentials: ['deploy-key-test']) {
+                sh 'docker image prune -f'
+            }
+        }
     }
 }
