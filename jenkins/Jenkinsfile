@@ -1,3 +1,14 @@
+def withRemoteDocker(Closure body) {
+    sshagent(credentials: [env.DEPLOY_CREDENTIALS]) {
+        withEnv([
+            "DOCKER_HOST=${env.DOCKER_HOST}",
+            "DOCKER_SSH_COMMAND=${env.DOCKER_SSH_COMMAND}"
+        ]) {
+            body()
+        }
+    }
+}
+
 pipeline {
     agent any
 
@@ -18,22 +29,25 @@ pipeline {
         PIP_NO_CACHE_DIR = '1'
         PYTHON_VERSION = '3.14'
         NODE_VERSION = '22'
+        DEPLOY_HOST        = '192.168.88.80'
+        DEPLOY_USER        = 'admin'
+        DEPLOY_CREDENTIALS = 'deploy-key-test'
+        DOCKER_HOST = "ssh://${DEPLOY_USER}@${DEPLOY_HOST}"
+        DOCKER_SSH_COMMAND = "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
     }
 
     stages {
 
         stage('SSH test') {
+
             steps {
-                sshagent(credentials: ['deploy-key-test']) {
+                sshagent(credentials: [env.DEPLOY_CREDENTIALS]) {
                     sh '''
-                        ssh \
-                        -o StrictHostKeyChecking=no \
-                        admin@192.168.88.80 \
-                        hostname
+                        ssh ${DEPLOY_USER}@${DEPLOY_HOST} hostname
                     '''
                 }
-            }
-        }        
+            }     
+        }   
 
         stage('Checkout') {
             steps {
@@ -106,16 +120,10 @@ pipeline {
         }
 
         stage('Container Image Build') {
-            environment {
-                DOCKER_HOST = 'ssh://admin@192.168.88.80'
-            }            
+
             steps {
-                sshagent(credentials: ['deploy-key-test']) {
-                    withEnv([
-                        'DOCKER_SSH_COMMAND=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-                    ]) {
+                withRemoteDocker {
                         sh '''
-                            ssh-add -L
                             set -eu
 
                             docker build \
@@ -131,24 +139,15 @@ pipeline {
                                 --build-arg NODE_VERSION="${NODE_VERSION}" \
                                 --tag "anime-backlog-frontend:${BUILD_NUMBER}" \
                                 frontend
-                        '''
-                    }
+                        '''                    
                 }
             }
         }
 
         stage('Deploy') {
-            environment {
-                DOCKER_HOST = 'ssh://admin@192.168.88.80'
-            }
+
             steps {
-                sshagent(credentials: ['deploy-key-test']) {
-                    withEnv([
-                        'DOCKER_SSH_COMMAND=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-                    ]) {
-                        withCredentials([
-                            file(credentialsId: 'anime-backlog-env', variable: 'ENV_FILE')
-                        ]) {
+                withRemoteDocker {
                             sh '''
                                 set -eu
 
@@ -161,9 +160,7 @@ pipeline {
                                     --remove-orphans \
                                     --wait \
                                     --wait-timeout 90
-                            '''
-                        }
-                    }
+                            '''                    
                 }
             }
         }
@@ -171,10 +168,8 @@ pipeline {
 
         post {
             success {
-                withEnv(["DOCKER_HOST=ssh://admin@192.168.88.80"]) {
-                    sshagent(credentials: ['deploy-key-test']) {
-                        sh 'docker image prune -f'
-                    }
+                withRemoteDocker {
+                    sh 'docker image prune -f'
                 }
             }
         }

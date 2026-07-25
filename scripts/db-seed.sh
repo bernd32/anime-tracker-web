@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Bash script that seeds the anime-backlog database on the deployed server
+# Dummy csv file for testing purposes are located here, in the scripts directory
 set -euo pipefail
 
 BASE=http://192.168.88.80:43968/api/v1
