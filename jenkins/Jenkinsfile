@@ -24,6 +24,7 @@ pipeline {
         DEPLOY_HOST        = '192.168.88.80'
         DEPLOY_USER        = 'admin'
         DEPLOY_CREDENTIALS = 'deploy-key-test'
+        DEPLOY_ENV_FILE_CREDENTIALS = 'anime-backlog-env'
     }
 
     options {
@@ -148,19 +149,21 @@ pipeline {
 
             steps {
                 withRemoteDocker {
-                            sh '''
-                                set -eu
+                    withCredentials([file(credentialsId: env.DEPLOY_ENV_FILE_CREDENTIALS, variable: 'ENV_FILE')]) {
+                        sh '''
+                            set -eu
 
-                                export API_IMAGE="anime-backlog-api:${BUILD_NUMBER}"
-                                export FRONTEND_IMAGE="anime-backlog-frontend:${BUILD_NUMBER}"
+                            export API_IMAGE="anime-backlog-api:${BUILD_NUMBER}"
+                            export FRONTEND_IMAGE="anime-backlog-frontend:${BUILD_NUMBER}"
 
-                                docker compose \
-                                    --env-file "$ENV_FILE" \
-                                    up -d \
-                                    --remove-orphans \
-                                    --wait \
-                                    --wait-timeout 90
-                            '''                    
+                            docker compose \
+                                --env-file "$ENV_FILE" \
+                                up -d \
+                                --remove-orphans \
+                                --wait \
+                                --wait-timeout 90
+                        '''
+                    }
                 }
             }
         }
