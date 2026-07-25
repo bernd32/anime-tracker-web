@@ -29,7 +29,7 @@ export function OwnerGate({ children }: { children: React.ReactNode }) {
     <div className="rounded-xl border p-6">
       <h1 className="text-xl font-semibold tracking-tight">Owner access required</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        This page changes the backlog and is available only after you sign in as the owner.
+        Please log in to perform actions.
       </p>
       <div className="mt-4">
         <Button asChild>

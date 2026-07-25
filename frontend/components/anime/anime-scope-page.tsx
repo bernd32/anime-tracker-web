@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { AnimeListView } from '@/features/anime/anime-list-view';
 import { AddAnimeButton } from '@/features/anime/add-anime-button';
-import { useAuthSession } from '@/features/auth/hooks';
+import { useRequireOwnerAction } from '@/features/auth/require-owner-action';
 import { RandomPickButton } from '@/features/anime/random-pick-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,8 +19,7 @@ import { cn, percent } from '@/lib/utils';
 export function AnimeScopePage({ title, description, scopeKind, scopeYear, search = '' }: { title: string; description: string; scopeKind: ScopeKind; scopeYear?: number; search?: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const authQuery = useAuthSession();
-  const canWrite = authQuery.data?.can_write ?? false;
+  const { requireOwnerAction } = useRequireOwnerAction();
   const deleteYear = useMutation({
     mutationFn: (year: number) => apiClient.deleteYear(year),
     onSuccess: async () => {
@@ -52,7 +51,16 @@ export function AnimeScopePage({ title, description, scopeKind, scopeYear, searc
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {canWrite && scopeKind === 'year' && scopeYear ? <Button variant="destructive" onClick={() => confirmDeleteYear(scopeYear)}>Delete year</Button> : null}
+          {scopeKind === 'year' && scopeYear ? (
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (requireOwnerAction()) confirmDeleteYear(scopeYear);
+              }}
+            >
+              Delete year
+            </Button>
+          ) : null}
           <RandomPickButton params={{ scope_kind: scopeKind, scope_year: scopeYear, search }} />
           <AddAnimeButton year={scopeYear} />
         </div>

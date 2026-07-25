@@ -5,13 +5,13 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useAuthSession } from '@/features/auth/hooks';
+import { useRequireOwnerAction } from '@/features/auth/require-owner-action';
 import { ImportCsvDialog } from '@/features/import-export/import-preview-dialog';
 import { apiClient } from '@/lib/api/client';
 
 export function ImportExportMenu() {
   const [openImport, setOpenImport] = useState(false);
-  const authQuery = useAuthSession();
+  const { requireOwnerAction } = useRequireOwnerAction();
 
   const download = async () => {
     const blob = await apiClient.exportCsv();
@@ -23,10 +23,6 @@ export function ImportExportMenu() {
     URL.revokeObjectURL(url);
   };
 
-  if (!authQuery.data?.can_write) {
-    return null;
-  }
-
   return (
     <>
       <DropdownMenu>
@@ -34,8 +30,16 @@ export function ImportExportMenu() {
           <Button variant="outline">Import / Export</Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setOpenImport(true)}><Upload className="mr-2 h-4 w-4" />Import CSV</DropdownMenuItem>
-          <DropdownMenuItem onSelect={download}><Download className="mr-2 h-4 w-4" />Export CSV</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => {
+            if (requireOwnerAction()) setOpenImport(true);
+          }}>
+            <Upload className="mr-2 h-4 w-4" />Import CSV
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => {
+            if (requireOwnerAction()) void download();
+          }}>
+            <Download className="mr-2 h-4 w-4" />Export CSV
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <ImportCsvDialog open={openImport} onOpenChange={setOpenImport} />
