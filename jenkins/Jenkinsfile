@@ -1,8 +1,23 @@
+environment {
+    DOCKER_BUILDKIT = '1'
+    NEXT_PUBLIC_API_BASE_URL = 'http://localhost:43968/api/v1'
+    NEXT_TELEMETRY_DISABLED = '1'
+    NPM_CONFIG_UPDATE_NOTIFIER = 'false'
+    PIP_DISABLE_PIP_VERSION_CHECK = '1'
+    PIP_NO_CACHE_DIR = '1'
+    PYTHON_VERSION = '3.14'
+    NODE_VERSION = '22'
+    DEPLOY_HOST        = '192.168.88.80'
+    DEPLOY_USER        = 'admin'
+    DEPLOY_CREDENTIALS = 'deploy-key-test'
+
+}
+
 def withRemoteDocker(Closure body) {
     sshagent(credentials: [env.DEPLOY_CREDENTIALS]) {
         withEnv([
-            "DOCKER_HOST=${env.DOCKER_HOST}",
-            "DOCKER_SSH_COMMAND=${env.DOCKER_SSH_COMMAND}"
+            "DOCKER_HOST=ssh://${env.DEPLOY_USER}@${env.DEPLOY_HOST}",
+            "DOCKER_SSH_COMMAND=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
         ]) {
             body()
         }
@@ -20,21 +35,7 @@ pipeline {
         timestamps()
     }
 
-    environment {
-        DOCKER_BUILDKIT = '1'
-        NEXT_PUBLIC_API_BASE_URL = 'http://localhost:43968/api/v1'
-        NEXT_TELEMETRY_DISABLED = '1'
-        NPM_CONFIG_UPDATE_NOTIFIER = 'false'
-        PIP_DISABLE_PIP_VERSION_CHECK = '1'
-        PIP_NO_CACHE_DIR = '1'
-        PYTHON_VERSION = '3.14'
-        NODE_VERSION = '22'
-        DEPLOY_HOST        = '192.168.88.80'
-        DEPLOY_USER        = 'admin'
-        DEPLOY_CREDENTIALS = 'deploy-key-test'
-        DOCKER_HOST = "ssh://${DEPLOY_USER}@${DEPLOY_HOST}"
-        DOCKER_SSH_COMMAND = "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-    }
+
 
     stages {
 
