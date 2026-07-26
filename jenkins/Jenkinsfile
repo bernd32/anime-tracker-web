@@ -83,7 +83,12 @@ pipeline {
                     }
                     post {
                         always {
-                            junit allowEmptyResults: true, testResults: 'backend/reports/pytest.xml'
+                            junit allowEmptyResults: false, testResults: 'backend/reports/pytest.xml'
+                            junit 'backend/reports/pytest.xml'
+                            publishHTML target: [
+                            reportDir: 'backend/reports',
+                            reportFiles: 'pytest.xml', 
+                            reportName: 'Backend Coverage Report'                           ]
                         }
                     }
                 }
@@ -114,6 +119,11 @@ pipeline {
                     post {
                         always {
                             junit allowEmptyResults: true, testResults: 'frontend/reports/vitest.xml'
+                            junit 'frontend/reports/vitest.xml'
+                            publishHTML target: [
+                            reportDir: 'frontend/reports',
+                            reportFiles: 'pytest.xml', 
+                            reportName: 'Frontend Coverage Report'  
                         }
                     }
                 }
