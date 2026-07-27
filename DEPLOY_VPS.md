@@ -99,8 +99,8 @@ If you use a custom Nginx config on the VPS, that stays under `/etc/nginx`, not 
 
 Use the published Docker Hub images for the app services:
 
-- `skeirs/anime-backlog-api:2`
-- `skeirs/anime-backlog-frontend:2`
+- `skeirs/anime-backlog-api:latest`
+- `skeirs/anime-backlog-frontend:latest`
 
 For the database, use the official PostgreSQL image:
 

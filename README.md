@@ -1,6 +1,6 @@
 # Anime Backlog Tracker
 
-Self-hosted anime backlog tracker with a Next.js frontend, FastAPI backend, PostgreSQL database, CSV import/export, and Shikimori metadata lookup.
+Self-hosted anime backlog tracker with a Next.js frontend, FastAPI backend, PostgreSQL database, CSV import/export, and anime metadata lookup from shikimori.io.
 
 ## Overview
 
@@ -81,7 +81,8 @@ Review at minimum:
 - `AUTH_LOGIN_MAX_FAILURES`
 - `AUTH_LOGIN_WINDOW_SECONDS`
 - `AUTH_LOGIN_LOCKOUT_SECONDS`
-- published ports in `.env`
+- published ports 
+in `.env`
 
 Default ports:
 
@@ -123,183 +124,7 @@ Stop it with:
 
 ```sh
 make dev-down
-```
 
-### Local backend
-
-```sh
-cd backend
-python -m pip install -e ".[dev]"
-uvicorn app.main:app --host 0.0.0.0 --port 43968 --reload
-```
-
-Notes:
-
-- Set `DATABASE_URL` before running outside Compose
-- Run migrations before starting the app:
-
-```sh
-cd backend
-alembic upgrade head
-```
-
-### Local frontend
-
-```sh
-cd frontend
-npm ci
-npm run dev -- --hostname 0.0.0.0 --port 20773
-```
-
-The browser always talks to same-origin `/api/v1`. If you run the frontend outside Docker Compose, set `API_PROXY_TARGET` so the frontend server can reach the backend.
-
-## Testing
-
-### Frontend
-
-```sh
-cd frontend
-npm test
-```
-
-### Backend
-
-```sh
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-python3 -m pip install -e ".[dev]"
-python3 -m pytest -q
-```
-
-### Project shortcuts
-
-```sh
-make test-frontend
-make test-backend
-make ci
-```
-
-## CI
-
-GitHub Actions workflow:
-
-- `.github/workflows/ci.yml`
-
-Current CI gates:
-
-- backend dependency install
-- backend pytest
-- frontend dependency install
-- frontend Vitest suite
-- frontend production build
-
-## Deployment
-
-Production deployment is image-first. The intended flow is:
-
-1. publish updated images to Docker Hub
-2. pull those images on the target machine
-3. recreate the stack with Docker Compose
-
-Default image references in `compose.yaml`:
-
-- `postgres:17-alpine`
-- `skeirs/anime-backlog-api:2`
-- `skeirs/anime-backlog-frontend:2`
-
-For VPS deployment, use the root `compose.yaml` directly and follow [DEPLOY_VPS.md](/home/bernd/Documents/programs/python/anime-tracker-web/DEPLOY_VPS.md).
-
-## Configuration
-
-Top-level `.env` controls the Docker Compose stack.
-
-Important variables:
-
-- `COMPOSE_PROJECT_NAME`
-- `DB_IMAGE`
-- `API_IMAGE`
-- `FRONTEND_IMAGE`
-- `POSTGRES_DB`
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_PORT`
-- `API_PORT`
-- `FRONTEND_PORT`
-- `API_PROXY_TARGET`
-- `APP_ENV`
-- `APP_DEBUG`
-- `LOG_LEVEL`
-- `UVICORN_WORKERS`
-- `CORS_ALLOW_ORIGINS`
-- `AUTH_OWNER_USERNAME`
-- `AUTH_OWNER_PASSWORD`
-- `AUTH_SESSION_SECRET`
-- `AUTH_SESSION_MAX_AGE_SECONDS`
-- `AUTH_LOGIN_MAX_FAILURES`
-- `AUTH_LOGIN_WINDOW_SECONDS`
-- `AUTH_LOGIN_LOCKOUT_SECONDS`
-- `SHIKIMORI_GRAPHQL_URL`
-- `SHIKIMORI_REQUEST_TIMEOUT_SECONDS`
-- `SHIKIMORI_CACHE_TTL_SECONDS`
-- `SHIKIMORI_USER_AGENT`
-- `SHIKIMORI_HTTPS_PROXY_URL`
-- `SHIKIMORI_SOCKS5_PROXY_URL`
-
-The application uses a single owner login:
-
-- everyone can read the backlog
-- only the signed-in owner can create, edit, delete, import, or change preferences
-- production startup is blocked if `AUTH_OWNER_USERNAME`, `AUTH_OWNER_PASSWORD`, or `AUTH_SESSION_SECRET` are left on insecure defaults
-- repeated failed owner logins are throttled using the `AUTH_LOGIN_*` settings
-
-The frontend proxies browser requests through same-origin `/api/v1`, so one frontend image can run on any host. The frontend server reaches the backend using `API_PROXY_TARGET`.
-
-`CORS_ALLOW_ORIGINS` is a JSON array string, for example:
-
-```dotenv
-CORS_ALLOW_ORIGINS=["http://localhost:20773","http://192.168.88.40:20773"]
-```
-
-### Shikimori proxy configuration
-
-You can route Shikimori requests through exactly one proxy type:
-
-- `SHIKIMORI_HTTPS_PROXY_URL`
-- `SHIKIMORI_SOCKS5_PROXY_URL`
-
-Examples:
-
-```dotenv
-SHIKIMORI_HTTPS_PROXY_URL=https://proxy.example:8443
-```
-
-```dotenv
-SHIKIMORI_SOCKS5_PROXY_URL=socks5://127.0.0.1:1080
-```
-
-Notes:
-
-- set only one of the two variables
-- HTTPS proxy values must start with `http://` or `https://`
-- SOCKS5 proxy values must start with `socks5://` or `socks5h://`
-- when the backend runs in Docker and the proxy runs on the host machine, use `host.docker.internal` instead of `127.0.0.1`
-
-Example for Docker on the same host:
-
-```dotenv
-SHIKIMORI_SOCKS5_PROXY_URL=socks5://host.docker.internal:10808
-```
-
-Quick setup steps:
-
-1. Set the proxy URL in `.env`
-2. If you also run the backend outside Docker, mirror it in `backend/.env`
-3. Recreate the stack so the containers pick up the new environment:
-
-```sh
-docker compose up -d
-```
 
 ## Database and Migrations
 
