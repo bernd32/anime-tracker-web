@@ -124,6 +124,7 @@ pipeline {
                             reportDir: 'frontend/reports',
                             reportFiles: 'pytest.xml', 
                             reportName: 'Frontend Coverage Report'  
+                            ]
                         }
                     }
                 }
