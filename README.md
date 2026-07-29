@@ -93,4 +93,4 @@ Default ports:
 ```sh
 docker compose pull
 docker compose up -d
-```
+``` 
