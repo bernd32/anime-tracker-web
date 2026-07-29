@@ -66,8 +66,6 @@ Copy the example env files:
 
 ```sh
 cp .env.example .env
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
 ```
 
 Review at minimum:
@@ -95,86 +93,4 @@ Default ports:
 ```sh
 docker compose pull
 docker compose up -d
-```
-
-Open:
-
-- frontend: `http://localhost:20773`
-- backend healthcheck: `http://localhost:43968/api/v1/healthz`
-
-## Development
-
-### Start dev stack
-
-This uses bind mounts and local builds:
-
-```sh
-docker compose -f compose.yaml -f compose.dev.yaml up --build
-```
-
-Or with `make`:
-
-```sh
-make dev
-```
-
-Use `make build && make up` only when you want to build and run the runtime images locally without bind mounts.
-
-Stop it with:
-
-```sh
-make dev-down
-
-
-## Database and Migrations
-
-The backend startup script:
-
-- waits for the database
-- runs `alembic upgrade head`
-- starts Uvicorn
-
-Entry point:
-
-- `backend/scripts/start-api.sh`
-
-If you need to run migrations manually:
-
-```sh
-cd backend
-alembic upgrade head
-```
-
-## Backup and Restore
-
-### Backup
-
-```sh
-make backup
-```
-
-This creates a compressed SQL dump under `./backups`.
-
-### Restore
-
-```sh
-make restore FILE=./backups/postgres-YYYYMMDD-HHMMSS.sql.gz
-```
-
-Be careful: restore writes into the current configured database.
-
-## Useful Commands
-
-```sh
-make help
-make build
-make pull
-make up
-make down
-make restart
-make logs
-make ps
-make db-shell
-make api-shell
-make front-shell
 ```
