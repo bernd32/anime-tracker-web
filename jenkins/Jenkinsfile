@@ -25,6 +25,8 @@ pipeline {
         DEPLOY_USER        = 'admin'
         DEPLOY_CREDENTIALS = 'deploy-key-test'
         DEPLOY_ENV_FILE_CREDENTIALS = 'anime-backlog-env'
+        DOCKERHUB_NAMESPACE   = 'skeirs'
+        DOCKERHUB_CREDENTIALS = 'dockerhub-credentials'
     }
 
     options {
@@ -53,6 +55,13 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+                script {
+                    env.GIT_SHA_SHORT = sh(
+                        script: 'git rev-parse --short=8 HEAD',
+                        returnStdout: true
+                    ).trim()
+                }
+                echo "Building commit ${env.GIT_SHA_SHORT}"
             }
         }
 
@@ -141,6 +150,40 @@ pipeline {
                                 --tag "anime-backlog-frontend:${BUILD_NUMBER}" \
                                 frontend
                         '''                    
+                }
+            }
+        }
+
+        stage('Push to Registry') {
+
+            steps {
+                withRemoteDocker {
+                    withCredentials([usernamePassword(
+                        credentialsId: env.DOCKERHUB_CREDENTIALS,
+                        usernameVariable: 'DOCKERHUB_USER',
+                        passwordVariable: 'DOCKERHUB_TOKEN'
+                    )]) {
+                        sh '''
+                            set -eu
+
+                            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
+
+                            docker tag "anime-backlog-api:${BUILD_NUMBER}" \
+                                "${DOCKERHUB_NAMESPACE}/anime-backlog-api:${GIT_SHA_SHORT}"
+                            docker tag "anime-backlog-frontend:${BUILD_NUMBER}" \
+                                "${DOCKERHUB_NAMESPACE}/anime-backlog-frontend:${GIT_SHA_SHORT}"
+
+                            docker push "${DOCKERHUB_NAMESPACE}/anime-backlog-api:${GIT_SHA_SHORT}"
+                            docker push "${DOCKERHUB_NAMESPACE}/anime-backlog-frontend:${GIT_SHA_SHORT}"
+                        '''
+                    }
+                }
+            }
+            post {
+                always {
+                    withRemoteDocker {
+                        sh 'docker logout || true'
+                    }
                 }
             }
         }
