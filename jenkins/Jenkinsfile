@@ -98,6 +98,13 @@ pipeline {
                                         trap 'chmod -R a+rwX reports || true' EXIT
                                         . .venv/bin/activate
                                         echo "Running pip-audit (dependency vulnerability scan)"
+
+                                        # The docker agent doesn't provide a writable/valid $HOME,
+                                        # so pip-audit's cache dir resolver falls back to /.cache
+                                        # (permission denied). Point HOME at the workspace instead.
+                                        export HOME="$PWD"
+                                        mkdir -p "$HOME/.cache"
+
                                         python -m pip install pip-audit
 
                                         set +e
