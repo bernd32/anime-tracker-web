@@ -89,10 +89,53 @@ pipeline {
                                 pytest -q --junitxml=reports/pytest.xml
                             '''
                         }
+                        script {
+                            dir('backend') {
+                                // Non-blocking: pip-audit findings are reported but never fail the build.
+                                def auditStatus = sh(
+                                    script: '''
+                                        set -eu
+                                        trap 'chmod -R a+rwX reports || true' EXIT
+                                        . .venv/bin/activate
+                                        echo "Running pip-audit (dependency vulnerability scan)"
+                                        python -m pip install pip-audit
+
+                                        set +e
+                                        pip-audit --desc --format json --output reports/pip-audit.json
+                                        STATUS=$?
+                                        pip-audit --desc > reports/pip-audit.txt 2>&1
+                                        set -e
+
+                                        {
+                                            echo '<html><head><meta charset="utf-8"><title>pip-audit report</title>'
+                                            echo '<style>body{font-family:monospace;background:#1e1e1e;color:#ddd;padding:16px}pre{white-space:pre-wrap;word-break:break-word}</style>'
+                                            echo '</head><body><h2>pip-audit report</h2><pre>'
+                                            sed -e "s/&/\\&amp;/g" -e "s/</\\&lt;/g" -e "s/>/\\&gt;/g" reports/pip-audit.txt
+                                            echo '</pre></body></html>'
+                                        } > reports/pip-audit.html
+
+                                        exit "${STATUS}"
+                                    ''',
+                                    returnStatus: true
+                                )
+                                if (auditStatus != 0) {
+                                    unstable(message: 'pip-audit found vulnerable backend dependencies (see pip-audit report)')
+                                }
+                            }
+                        }
                     }
                     post {
                         always {
                             junit allowEmptyResults: true, testResults: 'backend/reports/pytest.xml'
+                            archiveArtifacts artifacts: 'backend/reports/pip-audit.json, backend/reports/pip-audit.txt, backend/reports/pip-audit.html', allowEmptyArchive: true
+                            publishHTML(target: [
+                                allowMissing: true,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: 'backend/reports',
+                                reportFiles: 'pip-audit.html',
+                                reportName: 'pip-audit Report'
+                            ])
                         }
                     }
                 }
@@ -119,10 +162,52 @@ pipeline {
                                 npm run build
                             '''
                         }
+                        script {
+                            dir('frontend') {
+                                // Non-blocking: npm audit findings are reported but never fail the build.
+                                def auditStatus = sh(
+                                    script: '''
+                                        set -eu
+                                        trap 'chmod -R a+rwX reports || true' EXIT
+                                        echo "Running npm audit (dependency vulnerability scan)"
+
+                                        set +e
+                                        npm audit --json > reports/npm-audit.json
+                                        npm audit > reports/npm-audit.txt 2>&1
+                                        npm audit --audit-level=high >/dev/null 2>&1
+                                        STATUS=$?
+                                        set -e
+
+                                        {
+                                            echo '<html><head><meta charset="utf-8"><title>npm audit report</title>'
+                                            echo '<style>body{font-family:monospace;background:#1e1e1e;color:#ddd;padding:16px}pre{white-space:pre-wrap;word-break:break-word}</style>'
+                                            echo '</head><body><h2>npm audit report</h2><pre>'
+                                            sed -e "s/&/\\&amp;/g" -e "s/</\\&lt;/g" -e "s/>/\\&gt;/g" reports/npm-audit.txt
+                                            echo '</pre></body></html>'
+                                        } > reports/npm-audit.html
+
+                                        exit "${STATUS}"
+                                    ''',
+                                    returnStatus: true
+                                )
+                                if (auditStatus != 0) {
+                                    unstable(message: 'npm audit found high/critical vulnerable frontend dependencies (see npm-audit report)')
+                                }
+                            }
+                        }
                     }
                     post {
                         always {
                             junit allowEmptyResults: true, testResults: 'frontend/reports/vitest.xml'
+                            archiveArtifacts artifacts: 'frontend/reports/npm-audit.json, frontend/reports/npm-audit.txt, frontend/reports/npm-audit.html', allowEmptyArchive: true
+                            publishHTML(target: [
+                                allowMissing: true,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: 'frontend/reports',
+                                reportFiles: 'npm-audit.html',
+                                reportName: 'npm audit Report'
+                            ])
                         }
                     }
                 }
@@ -150,6 +235,99 @@ pipeline {
                                 --tag "anime-backlog-frontend:${BUILD_NUMBER}" \
                                 frontend
                         '''                    
+                }
+            }
+        }
+
+        stage('Security Scan (Trivy)') {
+
+            steps {
+                script {
+                    withRemoteDocker {
+                        sh '''
+                            set -eu
+                            mkdir -p reports
+
+                            if ! command -v trivy >/dev/null 2>&1; then
+                                echo "trivy not found on agent, installing to ./bin"
+                                curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b "$PWD/bin"
+                                export PATH="$PWD/bin:$PATH"
+                            fi
+
+                            trivy image --download-db-only
+
+                            scan_image() {
+                                name="$1"
+                                image="$2"
+
+                                trivy image \
+                                    --format table \
+                                    --severity CRITICAL,HIGH \
+                                    --output "reports/trivy-${name}.txt" \
+                                    "${image}"
+
+                                trivy image \
+                                    --format json \
+                                    --severity CRITICAL,HIGH \
+                                    --output "reports/trivy-${name}.json" \
+                                    "${image}"
+                            }
+
+                            scan_image api "anime-backlog-api:${BUILD_NUMBER}"
+                            scan_image frontend "anime-backlog-frontend:${BUILD_NUMBER}"
+                        '''
+
+                        // Non-blocking: Trivy findings are reported but never fail the build.
+                        def criticalStatus = sh(
+                            script: '''
+                                set -eu
+
+                                if ! command -v trivy >/dev/null 2>&1; then
+                                    export PATH="$PWD/bin:$PATH"
+                                fi
+
+                                set +e
+                                trivy image --exit-code 1 --severity CRITICAL --ignore-unfixed --quiet "anime-backlog-api:${BUILD_NUMBER}"
+                                API_STATUS=$?
+                                trivy image --exit-code 1 --severity CRITICAL --ignore-unfixed --quiet "anime-backlog-frontend:${BUILD_NUMBER}"
+                                FRONTEND_STATUS=$?
+                                set -e
+
+                                {
+                                    echo '<html><head><meta charset="utf-8"><title>Trivy image scan report</title>'
+                                    echo '<style>body{font-family:monospace;background:#1e1e1e;color:#ddd;padding:16px}pre{white-space:pre-wrap;word-break:break-word}h2{color:#9cdcfe}</style>'
+                                    echo '</head><body>'
+                                    echo '<h2>anime-backlog-api</h2><pre>'
+                                    sed -e "s/&/\\&amp;/g" -e "s/</\\&lt;/g" -e "s/>/\\&gt;/g" reports/trivy-api.txt
+                                    echo '</pre>'
+                                    echo '<h2>anime-backlog-frontend</h2><pre>'
+                                    sed -e "s/&/\\&amp;/g" -e "s/</\\&lt;/g" -e "s/>/\\&gt;/g" reports/trivy-frontend.txt
+                                    echo '</pre></body></html>'
+                                } > reports/trivy-report.html
+
+                                if [ "${API_STATUS}" -ne 0 ] || [ "${FRONTEND_STATUS}" -ne 0 ]; then
+                                    exit 1
+                                fi
+                            ''',
+                            returnStatus: true
+                        )
+                        if (criticalStatus != 0) {
+                            unstable(message: 'Trivy found fixable CRITICAL vulnerabilities in built images (see Trivy report)')
+                        }
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'reports/trivy-*.txt, reports/trivy-*.json, reports/trivy-report.html', allowEmptyArchive: true
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'reports',
+                        reportFiles: 'trivy-report.html',
+                        reportName: 'Trivy Report'
+                    ])
                 }
             }
         }
