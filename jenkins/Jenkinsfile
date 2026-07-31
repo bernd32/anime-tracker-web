@@ -246,7 +246,7 @@ pipeline {
                     withRemoteDocker {
                         sh '''
                             set -eu
-                            mkdir -p reports
+                            mkdir -p reports images
 
                             if ! command -v trivy >/dev/null 2>&1; then
                                 echo "trivy not found on agent, installing to ./bin"
@@ -256,25 +256,32 @@ pipeline {
 
                             trivy image --download-db-only
 
+                            # trivy's own Docker client can't talk to DOCKER_HOST=ssh://...,
+                            # so pull the images down as local tarballs via the docker CLI
+                            # (which does support ssh://) and point trivy at the tarballs instead.
+                            echo "Saving images from the remote Docker host for local scanning"
+                            docker save "anime-backlog-api:${BUILD_NUMBER}" -o images/anime-backlog-api.tar
+                            docker save "anime-backlog-frontend:${BUILD_NUMBER}" -o images/anime-backlog-frontend.tar
+
                             scan_image() {
                                 name="$1"
-                                image="$2"
+                                tarball="$2"
 
                                 trivy image \
+                                    --input "${tarball}" \
                                     --format table \
                                     --severity CRITICAL,HIGH \
-                                    --output "reports/trivy-${name}.txt" \
-                                    "${image}"
+                                    --output "reports/trivy-${name}.txt"
 
                                 trivy image \
+                                    --input "${tarball}" \
                                     --format json \
                                     --severity CRITICAL,HIGH \
-                                    --output "reports/trivy-${name}.json" \
-                                    "${image}"
+                                    --output "reports/trivy-${name}.json"
                             }
 
-                            scan_image api "anime-backlog-api:${BUILD_NUMBER}"
-                            scan_image frontend "anime-backlog-frontend:${BUILD_NUMBER}"
+                            scan_image api images/anime-backlog-api.tar
+                            scan_image frontend images/anime-backlog-frontend.tar
                         '''
 
                         // Non-blocking: Trivy findings are reported but never fail the build.
@@ -287,9 +294,9 @@ pipeline {
                                 fi
 
                                 set +e
-                                trivy image --exit-code 1 --severity CRITICAL --ignore-unfixed --quiet "anime-backlog-api:${BUILD_NUMBER}"
+                                trivy image --input images/anime-backlog-api.tar --exit-code 1 --severity CRITICAL --ignore-unfixed --quiet
                                 API_STATUS=$?
-                                trivy image --exit-code 1 --severity CRITICAL --ignore-unfixed --quiet "anime-backlog-frontend:${BUILD_NUMBER}"
+                                trivy image --input images/anime-backlog-frontend.tar --exit-code 1 --severity CRITICAL --ignore-unfixed --quiet
                                 FRONTEND_STATUS=$?
                                 set -e
 
@@ -304,6 +311,8 @@ pipeline {
                                     sed -e "s/&/\\&amp;/g" -e "s/</\\&lt;/g" -e "s/>/\\&gt;/g" reports/trivy-frontend.txt
                                     echo '</pre></body></html>'
                                 } > reports/trivy-report.html
+
+                                rm -rf images
 
                                 if [ "${API_STATUS}" -ne 0 ] || [ "${FRONTEND_STATUS}" -ne 0 ]; then
                                     exit 1
