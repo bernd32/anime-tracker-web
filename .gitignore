@@ -63,3 +63,4 @@ backup-image/
 .codex
 *.tfstate
 *.backup
+cloud-terraform/.terraform/

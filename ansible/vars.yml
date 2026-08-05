@@ -1,0 +1,20 @@
+---
+# ==========================================
+# VPS HARDENING CONFIGURATION VARIABLES
+# ==========================================
+
+# The new non-root username to create
+new_user: "admin"
+
+# The local path to your public SSH key (must exist before running!)
+ssh_public_key_path: "~/.ssh/id_ed25519.pub"
+
+# The SSH port to allow through the firewall
+ssh_port: "22"
+
+# Architecture names expected by Docker's APT repository
+deb_architecture:
+  x86_64: amd64
+  aarch64: arm64
+
+ssh_service_name: "{{ 'ssh' if ansible_facts['distribution'] == 'Ubuntu' else 'sshd' }}"

@@ -1,0 +1,227 @@
+---
+- name: Initial VPS Hardening
+  hosts: vps
+  become: yes
+  vars_files:
+    - vars.yml
+
+  tasks:
+    # ---------------------------------------------------------
+    # 1. SYSTEM UPDATES
+    # ---------------------------------------------------------
+    - name: Update apt cache and upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+        cache_valid_time: 3600
+
+    - name: Install essential security packages
+      apt:
+        name:
+          - ufw
+          - fail2ban
+          - unattended-upgrades
+          - sudo
+        state: present
+
+    # ---------------------------------------------------------
+    # 1.1 DOCKER
+    # ---------------------------------------------------------
+    - name: Install Docker repository prerequisites
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - python3-debian
+        state: present
+
+    - name: Create directory for Docker APT keyring
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Docker APT signing key
+      get_url:
+        url: "https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}/gpg"
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    - name: Add Docker APT repository
+      deb822_repository:
+        name: docker
+        types: deb
+        uris: "https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}"
+        suites: "{{ ansible_facts['distribution_release'] }}"
+        components: stable
+        architectures: "{{ deb_architecture[ansible_facts['architecture']] | default(ansible_facts['architecture']) }}"
+        signed_by: /etc/apt/keyrings/docker.asc
+        state: present
+
+    - name: Install Docker Engine and plugins
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker is enabled and running
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    # ---------------------------------------------------------
+    # 2. USER MANAGEMENT
+    # ---------------------------------------------------------
+    - name: Create a new non-root user
+      user:
+        name: "{{ new_user }}"
+        state: present
+        shell: /bin/bash
+        create_home: yes
+
+    - name: Add new user to sudoers (passwordless for automation)
+      copy:
+        dest: "/etc/sudoers.d/{{ new_user }}"
+        content: "{{ new_user }} ALL=(ALL) NOPASSWD: ALL\n"
+        mode: '0440'
+        validate: '/usr/sbin/visudo -cf %s'
+
+    - name: Add new user to the Docker group
+      user:
+        name: "{{ new_user }}"
+        groups: docker
+        append: yes
+
+    # ---------------------------------------------------------
+    # 3. SSH KEY SETUP
+    # ---------------------------------------------------------
+    - name: Set authorized SSH key for the new user
+      authorized_key:
+        user: "{{ new_user }}"
+        state: present
+        key: "{{ lookup('file', ssh_public_key_path) }}"
+
+    # ---------------------------------------------------------
+    # 4. FIREWALL (UFW) SETUP
+    # ---------------------------------------------------------
+    - name: Allow SSH through UFW
+      ufw:
+        rule: allow
+        port: "{{ ssh_port }}"
+        proto: tcp
+
+    - name: Enable UFW and set default deny incoming, allow outgoing
+      ufw:
+        state: enabled
+        direction: incoming
+        policy: deny
+      notify: Restart UFW
+
+    - name: Set UFW default allow outgoing
+      ufw:
+        direction: outgoing
+        policy: allow
+
+    # ---------------------------------------------------------
+    # 5. SSH HARDENING
+    # ---------------------------------------------------------
+    - name: Disable Password Authentication via SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        state: present
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Restart SSH
+
+    - name: Disable Empty Passwords via SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitEmptyPasswords'
+        line: 'PermitEmptyPasswords no'
+        state: present
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Restart SSH
+
+    - name: Disable root login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+        state: present
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Restart SSH
+
+    - name: Enable public key authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PubkeyAuthentication'
+        line: 'PubkeyAuthentication yes'
+        state: present
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Restart SSH
+
+    - name: Disable X11 forwarding
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?X11Forwarding'
+        line: 'X11Forwarding no'
+        state: present
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Restart SSH
+
+    - name: Limit SSH authentication attempts
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?MaxAuthTries'
+        line: 'MaxAuthTries 3'
+        state: present
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Restart SSH
+
+    - name: Configure SSH client keepalive interval
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?ClientAliveInterval'
+        line: 'ClientAliveInterval 300'
+        state: present
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Restart SSH
+
+    - name: Restrict SSH access to the automation user
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?AllowUsers'
+        line: 'AllowUsers {{ new_user }}'
+        state: present
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Restart SSH
+
+    # ---------------------------------------------------------
+    # 6. FAIL2BAN
+    # ---------------------------------------------------------
+    - name: Ensure Fail2Ban is enabled and running
+      systemd:
+        name: fail2ban
+        state: started
+        enabled: yes
+
+  # ---------------------------------------------------------
+  # HANDLERS
+  # ---------------------------------------------------------
+  handlers:
+    - name: Restart SSH
+      systemd:
+        name: "{{ ssh_service_name }}"
+        state: restarted
+
+    - name: Restart UFW
+      systemd:
+        name: ufw
+        state: restarted
