@@ -4,7 +4,7 @@
 # ==========================================
 
 # The new non-root username to create
-new_user: "admin"
+new_user: "bernd"
 
 # The local path to your public SSH key (must exist before running!)
 ssh_public_key_path: "~/.ssh/id_ed25519.pub"
