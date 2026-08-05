@@ -47,7 +47,10 @@ pipeline {
             steps {
                 sshagent(credentials: [env.DEPLOY_CREDENTIALS]) {
                     sh '''
-                        ssh ${DEPLOY_USER}@${DEPLOY_HOST} hostname
+                        ssh \
+                        -o StrictHostKeyChecking=no \
+                        -o UserKnownHostsFile=/dev/null \
+                         ${DEPLOY_USER}@${DEPLOY_HOST} hostname
                     '''
                 }
             }     
