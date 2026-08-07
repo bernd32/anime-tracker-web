@@ -7,4 +7,18 @@ Solution:
 - In the job list, find the job named "anime-backlog-rollback". Click into it, then on the left select "Build with Parameters" 
 - The form will show a single text field, ROLLBACK_SHA. Paste in the SHA you copied in step 1 (no spaces, no quotes, exactly as it appeared in the log).
 - Click "Build". If the build turns green (SUCCESS), the rollback completed successfully.
-- 
+
+## Notes & Tips
+Host key verification failed problem sulution: 
+
+```sh
+docker exec -it -u 1000:1000 jenkins bash
+
+mkdir -p /var/jenkins_home/.ssh
+
+chown -R 1000:1000 /var/jenkins_home/.ssh
+
+ssh-keyscan -H [deployment_server_ip] >> ~/.ssh/known_hosts
+
+chmod 600 ~/.ssh/known_hosts 
+```
