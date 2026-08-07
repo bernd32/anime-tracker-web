@@ -21,7 +21,7 @@ pipeline {
         PIP_NO_CACHE_DIR = '1'
         PYTHON_VERSION = '3.14'
         NODE_VERSION = '22'
-        DEPLOY_HOST        = '111.88.242.160'
+        DEPLOY_HOST        = '89.169.147.94'
         DEPLOY_USER        = 'bernd'
         // DEPLOY_CREDENTIALS = 'deploy-key-test'
         DEPLOY_CREDENTIALS = 'deploy-key-cloud'

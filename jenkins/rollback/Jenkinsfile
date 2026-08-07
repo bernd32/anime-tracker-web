@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'ROLLBACK_SHA', defaultValue: '', description: 'git SHA (short, 8 characters) tag for rolling back')
+    }
+
+    environment {
+        DEPLOY_HOST                = '89.169.147.94'
+        DEPLOY_USER                = 'bernd'
+        DEPLOY_CREDENTIALS         = 'deploy-key-cloud'
+        DEPLOY_ENV_FILE_CREDENTIALS = 'anime-backlog-env'
+        DOCKERHUB_NAMESPACE        = 'skeirs'
+    }
+
+    options {
+        timeout(time: 15, unit: 'MINUTES')
+        timestamps()
+    }
+
+    stages {
+        stage('Validate input') {
+            steps {
+                script {
+                    if (!(params.ROLLBACK_SHA ==~ /^[0-9a-f]{7,40}$/)) {
+                        error "ROLLBACK_SHA should be git SHA in hex, got: '${params.ROLLBACK_SHA}'"
+                    }
+                }
+            }
+        }
+
+        stage('Checkout compose config') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Rollback') {
+            steps {
+                sshagent(credentials: [env.DEPLOY_CREDENTIALS]) {
+                    withEnv([
+                        "DOCKER_HOST=ssh://${env.DEPLOY_USER}@${env.DEPLOY_HOST}",
+                        "DOCKER_SSH_COMMAND=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+                    ]) {
+                        withCredentials([file(credentialsId: env.DEPLOY_ENV_FILE_CREDENTIALS, variable: 'ENV_FILE')]) {
+                            sh '''
+                                set -eu
+
+                                export API_IMAGE="${DOCKERHUB_NAMESPACE}/anime-backlog-api:${ROLLBACK_SHA}"
+                                export FRONTEND_IMAGE="${DOCKERHUB_NAMESPACE}/anime-backlog-frontend:${ROLLBACK_SHA}"
+
+                                echo "Rolling back to ${API_IMAGE} / ${FRONTEND_IMAGE}"
+
+                                docker compose --env-file "$ENV_FILE" pull api frontend
+                                docker compose --env-file "$ENV_FILE" up -d \
+                                    --remove-orphans \
+                                    --wait \
+                                    --wait-timeout 90
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Rolled back to ${params.ROLLBACK_SHA} successfully"
+        }
+        failure {
+            echo "Rollback failed, check if the tag exists in dockerhub"
+        }
+    }
+}
