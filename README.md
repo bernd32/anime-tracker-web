@@ -1,6 +1,6 @@
 # Anime Backlog Tracker
 
-Self-hosted anime backlog tracker with a Next.js frontend, FastAPI backend, PostgreSQL database, CSV import/export, and anime metadata lookup from shikimori.io.
+Self-hosted anime tracking app with a Next.js frontend, FastAPI backend, PostgreSQL database, CSV import/export, and anime metadata lookup from shikimori.io.
 
 ## Overview
 
@@ -11,19 +11,6 @@ This project is split into three main services:
 - `db`: PostgreSQL 17 database
 
 The main deployment path is Docker Compose with prebuilt Docker Hub images for the app services and the official PostgreSQL image for the database. A development overlay is also included for bind-mounted local development and local image builds.
-
-## Features
-
-- Track anime by year and season
-- Separate pre-2010 and per-year library views
-- Status tracking: `unwatched`, `watching`, `completed`
-- Downloaded flag
-- Search by anime name
-- Random pick within the current scope
-- CSV import and export
-- Cached Shikimori metadata lookup
-- Preferences for theme, density, and remembered scope
-- Docker-based deployment and local development flow
 
 ## Architecture
 
@@ -94,3 +81,7 @@ Default ports:
 docker compose pull
 docker compose up -d
 ``` 
+
+## RESTful API 
+
+API documentation is available at `http://hostname:43968/docs/`, where `43968` is the default API server's port.
