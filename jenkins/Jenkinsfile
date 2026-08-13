@@ -407,11 +407,15 @@ pipeline {
         }
     }
 
-        post {
-            success {
-                withRemoteDocker {
-                    sh 'docker image prune -f'
-                }
+    post {
+        always {
+            withRemoteDocker {
+                sh '''
+                    docker container prune -f
+                    docker image prune -a -f --filter "until=48h"
+                    docker builder prune -f --keep-storage 5GB
+                '''
             }
         }
+    }
 }
