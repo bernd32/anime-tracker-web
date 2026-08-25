@@ -53,12 +53,11 @@ Thumbs.db
 backups/
 
 # Generated or ad-hoc local artifacts
-anime-frontend.zip
+*.zip
 anime-frontend-files.txt
 todo.txt
 todo.md
 FEATURES.txt
-k8s/
 backup-image/
 .codex
 
@@ -66,4 +65,6 @@ backup-image/
 *.tfstate.*
 *.backup
 .terraform/
-.terraform.lock.hcl
+.terraform.lock.hclk8s/secret.yaml
+
+k8s/secret.yaml
