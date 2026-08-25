@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anime-backlog-config
+  namespace: anime-backlog
+data:
+  POSTGRES_DB: anime_backlog
+  POSTGRES_USER: anime
+  POSTGRES_PORT: "5432"
+  APP_ENV: development
+  APP_DEBUG: "false"
+  LOG_LEVEL: INFO
+  UVICORN_WORKERS: "1"
+  API_PORT: "43968"
+  FRONTEND_PORT: "20773"
+  API_PROXY_TARGET: http://anime-backlog-api:43968/api/v1
+  CORS_ALLOW_ORIGINS: '["http://localhost:20773","http://127.0.0.1:20773","http://192.168.88.40:20773"]'
+  SHIKIMORI_GRAPHQL_URL: https://shikimori.io/api/graphql
+  SHIKIMORI_REQUEST_TIMEOUT_SECONDS: "10"
+  SHIKIMORI_CACHE_TTL_SECONDS: "31536000"
+  SHIKIMORI_USER_AGENT: anime-backlog-web/1.0
+  AUTH_SESSION_MAX_AGE_SECONDS: "2592000"
+  AUTH_LOGIN_MAX_FAILURES: "5"
+  AUTH_LOGIN_WINDOW_SECONDS: "600"
+  AUTH_LOGIN_LOCKOUT_SECONDS: "900"
+  SHIKIMORI_HTTPS_PROXY_URL: ""
+  SHIKIMORI_SOCKS5_PROXY_URL: ""

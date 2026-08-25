@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anime-backlog-frontend
+  namespace: anime-backlog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anime-backlog-frontend
+  template:
+    metadata:
+      labels:
+        app: anime-backlog-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: skeirs/anime-backlog-frontend:31c851f7
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 20773
+              name: http
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: API_PROXY_TARGET
+              valueFrom:
+                configMapKeyRef:
+                  name: anime-backlog-config
+                  key: API_PROXY_TARGET
+            - name: HOSTNAME
+              value: 0.0.0.0
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: anime-backlog-config
+                  key: FRONTEND_PORT
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

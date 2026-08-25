@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: anime-backlog-db
+  namespace: anime-backlog
+spec:
+  selector:
+    app: anime-backlog-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+  type: ClusterIP

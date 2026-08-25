@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anime-backlog-api
+  namespace: anime-backlog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anime-backlog-api
+  template:
+    metadata:
+      labels:
+        app: anime-backlog-api
+    spec:
+      containers:
+        - name: api
+          image: skeirs/anime-backlog-api:31c851f7
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 43968
+              name: http
+          envFrom:
+            - configMapRef:
+                name: anime-backlog-config
+            - secretRef:
+                name: anime-backlog-secrets
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: anime-backlog-secrets
+                  key: POSTGRES_PASSWORD
+
+            - name: DATABASE_URL
+              value: postgresql+psycopg://anime:$(POSTGRES_PASSWORD)@anime-backlog-db:5432/anime_backlog
+
+          readinessProbe:
+            httpGet:
+              path: /api/v1/readyz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /api/v1/healthz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
