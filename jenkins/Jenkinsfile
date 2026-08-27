@@ -391,6 +391,8 @@ pipeline {
                         sh '''
                             set -eu
 
+                            touch .env
+
                             export API_IMAGE="anime-backlog-api:${BUILD_NUMBER}"
                             export FRONTEND_IMAGE="anime-backlog-frontend:${BUILD_NUMBER}"
 
