@@ -304,3 +304,5 @@ AC --> AB
 ```
 
 * Rollback is performed manually by redeploying Docker images tagged with the previous Git commit SHA. * 
+
+More documentation in the /docs 
