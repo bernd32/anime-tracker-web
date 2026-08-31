@@ -21,7 +21,7 @@ pipeline {
         PIP_NO_CACHE_DIR = '1'
         PYTHON_VERSION = '3.14'
         NODE_VERSION = '22'
-        DEPLOY_HOST        = '192.168.88.40'
+        DEPLOY_HOST        = '192.168.88.80'
         DEPLOY_USER        = 'admin'
         DEPLOY_CREDENTIALS = 'deploy-key-test'
         // DEPLOY_CREDENTIALS = 'deploy-key-cloud' // Yandex cloud
